@@ -1,7 +1,5 @@
-<html style="width:{{ project.card.width }};height:{{ project.card.height }}">
-  <body style="width:{{ project.card.width }};height:{{ project.card.height }};border:1px solid black;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:Arial;">
-    <img src="{{ image }}" style="width:80%;height:auto;margin-bottom:8px;">
-    <div><b>{{ t('ui.name') }}:</b> {{ card_t('name') }}</div>
-    <div><b>{{ t('ui.description') }}:</b> {{ card_t('description') }}</div>
-  </body>
-</html>
+<div style="border:1px solid black;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:Arial;width:100%;height:100%;">
+  <img src="{{ image }}" style="width:80%;height:auto;margin-bottom:8px;">
+  <div><b>{{ t('ui.name') }}:</b> {{ card_t('name') }}</div>
+  <div><b>{{ t('ui.description') }}:</b> {{ card_t('description') }}</div>
+</div>

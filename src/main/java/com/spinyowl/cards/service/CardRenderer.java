@@ -11,10 +11,7 @@ import io.pebbletemplates.pebble.extension.Function;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.StringWriter;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Slf4j
 public class CardRenderer implements ProjectManager.ReloadListener {
@@ -110,10 +107,48 @@ public class CardRenderer implements ProjectManager.ReloadListener {
             }
 
             log.debug("Rendered card {} with template {}", index, tpl);
-            return sw.toString();
+            return wrapWithHtml(sw.toString(), projectManager.getProjectProperties());
         } catch (Exception e) {
             log.error("Error rendering card {}", index, e);
             return "<p>Error rendering card.</p>";
         }
+    }
+
+    private String wrapWithHtml(String content, Map<String, Object> projectProps) {
+        Objects.requireNonNull(projectProps, "projectProps");
+
+        String width = null;
+        String height = null;
+        Object cardProps = projectProps.get("card");
+        if (cardProps instanceof Map<?, ?> map) {
+            Object cardWidth = map.get("width");
+            Object cardHeight = map.get("height");
+            width = cardWidth != null ? cardWidth.toString() : null;
+            height = cardHeight != null ? cardHeight.toString() : null;
+        }
+
+        List<String> styles = new ArrayList<>();
+        styles.add("margin:0");
+        if (width != null && !width.isBlank()) {
+            styles.add("width:" + width.trim());
+        }
+        if (height != null && !height.isBlank()) {
+            styles.add("height:" + height.trim());
+        }
+
+        String bodyStyle = String.join(";", styles);
+
+        return new StringBuilder()
+                .append("<html>")
+                .append("<body style=\"")
+                .append(escapeHtmlAttribute(bodyStyle))
+                .append("\">")
+                .append(content)
+                .append("</body></html>")
+                .toString();
+    }
+
+    private String escapeHtmlAttribute(String value) {
+        return value.replace("\"", "&quot;");
     }
 }
