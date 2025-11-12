@@ -4,9 +4,14 @@ import com.spinyowl.cards.service.CardRenderer;
 import com.spinyowl.cards.service.ProjectManager;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Scene;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
 import javafx.scene.web.WebView;
+import javafx.stage.Stage;
+
+import java.io.IOException;
 
 public class PreviewController {
 
@@ -36,6 +41,20 @@ public class PreviewController {
     @FXML
     public void onShow() {
         refresh();
+    }
+
+    @FXML
+    public void onCloseProject() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/main/ui/startup.fxml"));
+            Scene scene = new Scene(loader.load(), 800, 600);
+            Stage stage = (Stage) webView.getScene().getWindow();
+            stage.setScene(scene);
+            stage.setTitle("Card Renderer");
+            stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void refresh() {

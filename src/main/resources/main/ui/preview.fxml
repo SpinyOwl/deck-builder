@@ -13,6 +13,13 @@
             <Label text="Index:"/>
             <TextField fx:id="indexField" prefWidth="60"/>
             <Button text="Show" onAction="#onShow"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button text="&#x2715;" onAction="#onCloseProject" focusTraversable="false"
+                    style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-focus-color: transparent;">
+                <tooltip>
+                    <Tooltip text="Close Project"/>
+                </tooltip>
+            </Button>
         </ToolBar>
     </top>
     <center>
