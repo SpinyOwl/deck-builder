@@ -2,6 +2,7 @@ package com.spinyowl.cards;
 
 import com.spinyowl.cards.config.AppConfig;
 import com.spinyowl.cards.config.ConfigService;
+import com.spinyowl.cards.logging.LoggingInitializer;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -55,6 +56,7 @@ public class MainApp extends Application {
     }
 
     public static void main(String[] args) {
+        LoggingInitializer.initialize();
         launch(args);
     }
 }

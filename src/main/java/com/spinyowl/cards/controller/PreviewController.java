@@ -1,5 +1,6 @@
 package com.spinyowl.cards.controller;
 
+import com.spinyowl.cards.config.AppPaths;
 import com.spinyowl.cards.service.CardRenderer;
 import com.spinyowl.cards.service.ProjectManager;
 import com.spinyowl.cards.service.ProjectWatcher;
@@ -11,8 +12,11 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.TextArea;
+import javafx.scene.control.SplitPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
+import javafx.scene.control.TitledPane;
 import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
@@ -22,26 +26,81 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.awt.Desktop;
 import java.nio.file.FileAlreadyExistsException;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
-import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.nio.charset.StandardCharsets;
 
 @Slf4j
 public class PreviewController {
+
+    private static final int MAX_LOG_CHARACTERS = 20_000;
 
     @FXML private WebView webView;
     @FXML private TextField indexField;
     @FXML private ComboBox<String> langBox;
     @FXML private TreeView<Path> projectTree;
+    @FXML private TitledPane consolePane;
+    @FXML private TextArea consoleTextArea;
+    @FXML private SplitPane mainVerticalSplit;
 
     private ProjectManager projectManager;
     private CardRenderer renderer;
     private ProjectWatcher projectWatcher;
     private final AtomicBoolean reloadScheduled = new AtomicBoolean();
+    private ScheduledExecutorService logUpdateExecutor;
+    private Path latestLogFile;
+    private volatile long lastLogModified = -1L;
+    private volatile long lastLogSize = -1L;
+    private volatile String lastDisplayedLog;
+    private volatile double storedDividerPos = 0.8; // remember previous divider position when collapsing console
+    private volatile boolean dividerStored = false;
+
+    @FXML
+    public void initialize() {
+        // Hook up collapse/expand behavior so the top pane regains space when console is collapsed
+        if (consolePane != null) {
+            consolePane.expandedProperty().addListener((obs, wasExpanded, isNowExpanded) -> {
+                if (mainVerticalSplit == null) {
+                    return;
+                }
+                if (isNowExpanded) {
+                    // restore resizable and divider position
+                    SplitPane.setResizableWithParent(consolePane, true);
+                    double target = dividerStored ? storedDividerPos : 0.8;
+                    Platform.runLater(() -> mainVerticalSplit.setDividerPositions(clamp(target)));
+                } else {
+                    // store current divider position and collapse console area visually
+                    if (!mainVerticalSplit.getDividers().isEmpty()) {
+                        storedDividerPos = mainVerticalSplit.getDividers().get(0).getPosition();
+                        dividerStored = true;
+                    }
+                    SplitPane.setResizableWithParent(consolePane, false);
+                    Platform.runLater(() -> mainVerticalSplit.setDividerPositions(1.0));
+                }
+            });
+
+            // Apply initial state: if it's collapsed at startup, ensure divider is at 1.0 and console doesn't take space
+            if (mainVerticalSplit != null && !consolePane.isExpanded()) {
+                SplitPane.setResizableWithParent(consolePane, false);
+                Platform.runLater(() -> mainVerticalSplit.setDividerPositions(1.0));
+            }
+        }
+    }
+
+    private double clamp(double pos) {
+        if (pos < 0.0) return 0.0;
+        if (pos > 1.0) return 1.0;
+        return pos;
+    }
 
     public void setProject(ProjectManager pm) {
         this.projectManager = pm;
@@ -53,11 +112,16 @@ public class PreviewController {
         initProjectTree();
         refresh();
         startWatcher();
+        startLogUpdates();
+        if (projectManager != null && projectManager.getProjectDir() != null) {
+            log.info("Preview initialized for {}", projectManager.getProjectDir());
+        }
     }
 
     @FXML
     public void onReload() {
         performReload();
+        log.info("Manual template reload requested");
     }
 
     @FXML
@@ -68,6 +132,7 @@ public class PreviewController {
     @FXML
     public void onCloseProject() {
         stopWatcher();
+        stopLogUpdates();
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/main/ui/startup.fxml"));
             Scene scene = new Scene(loader.load(), 800, 600);
@@ -75,8 +140,10 @@ public class PreviewController {
             stage.setScene(scene);
             stage.setTitle("SpinyOwl.DeckBuilder");
             stage.show();
+            log.info("Project closed");
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Failed to close project view", e);
+            expandConsole();
         }
     }
 
@@ -85,8 +152,10 @@ public class PreviewController {
             int idx = Integer.parseInt(indexField.getText().trim());
             String html = renderer.renderCard(idx, langBox.getValue());
             Platform.runLater(() -> webView.getEngine().loadContent(html));
+            log.info("Rendered card {} ({})", idx, langBox.getValue());
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Error rendering card", e);
+            expandConsole();
             webView.getEngine().loadContent("<p>Error rendering card.</p>");
         }
     }
@@ -330,7 +399,90 @@ public class PreviewController {
         try {
             desktop.open(path.toFile());
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error("Failed to open file {}", path, e);
+            expandConsole();
+        }
+    }
+
+    private void startLogUpdates() {
+        stopLogUpdates();
+        latestLogFile = AppPaths.getLatestLogFile();
+        lastLogModified = -1L;
+        lastLogSize = -1L;
+        lastDisplayedLog = null;
+        logUpdateExecutor = Executors.newSingleThreadScheduledExecutor(new LogWatcherThreadFactory());
+        logUpdateExecutor.scheduleWithFixedDelay(this::refreshConsoleFromLog, 0, 1, TimeUnit.SECONDS);
+    }
+
+    private void stopLogUpdates() {
+        if (logUpdateExecutor != null) {
+            logUpdateExecutor.shutdownNow();
+            logUpdateExecutor = null;
+        }
+        latestLogFile = null;
+        lastDisplayedLog = null;
+        lastLogModified = -1L;
+        lastLogSize = -1L;
+    }
+
+    private void refreshConsoleFromLog() {
+        if (consoleTextArea == null) {
+            return;
+        }
+
+        Path logFile = latestLogFile;
+        if (logFile == null || !Files.exists(logFile)) {
+            if (lastDisplayedLog != null && !lastDisplayedLog.isEmpty()) {
+                lastDisplayedLog = "";
+                Platform.runLater(() -> {
+                    consoleTextArea.clear();
+                    consoleTextArea.positionCaret(0);
+                });
+            }
+            lastLogModified = -1L;
+            lastLogSize = -1L;
+            return;
+        }
+
+        try {
+            long modified = Files.getLastModifiedTime(logFile).toMillis();
+            long size = Files.size(logFile);
+            if (modified == lastLogModified && size == lastLogSize) {
+                return;
+            }
+            lastLogModified = modified;
+            lastLogSize = size;
+
+            String content = Files.readString(logFile, StandardCharsets.UTF_8);
+            if (content.length() > MAX_LOG_CHARACTERS) {
+                content = content.substring(content.length() - MAX_LOG_CHARACTERS);
+            }
+            if (content.equals(lastDisplayedLog)) {
+                return;
+            }
+            lastDisplayedLog = content;
+            String finalContent = content;
+            Platform.runLater(() -> {
+                consoleTextArea.setText(finalContent);
+                consoleTextArea.positionCaret(finalContent.length());
+            });
+        } catch (IOException e) {
+            log.warn("Failed to read log file {}", logFile, e);
+        }
+    }
+
+    private void expandConsole() {
+        if (consolePane != null) {
+            Platform.runLater(() -> consolePane.setExpanded(true));
+        }
+    }
+
+    private static class LogWatcherThreadFactory implements ThreadFactory {
+        @Override
+        public Thread newThread(Runnable r) {
+            Thread thread = new Thread(r, "log-viewer");
+            thread.setDaemon(true);
+            return thread;
         }
     }
 }
