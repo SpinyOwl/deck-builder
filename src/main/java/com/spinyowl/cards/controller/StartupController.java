@@ -3,6 +3,7 @@ package com.spinyowl.cards.controller;
 import com.spinyowl.cards.config.ConfigService;
 import com.spinyowl.cards.service.ProjectCreator;
 import com.spinyowl.cards.service.ProjectManager;
+import com.spinyowl.cards.ui.WindowStateHandler;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -105,17 +106,13 @@ public class StartupController {
 
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/main/ui/preview.fxml"));
             Stage stage = (Stage) statusLabel.getScene().getWindow();
-            double width = stage.getWidth();
-            double height = stage.getHeight();
             Scene scene = new Scene(loader.load());
             PreviewController controller = loader.getController();
             controller.setProject(pm);
 
             stage.setScene(scene);
-            if (width > 0 && height > 0) {
-                stage.setWidth(width);
-                stage.setHeight(height);
-            }
+            stage.setResizable(true);
+            WindowStateHandler.enable(stage, configService);
             stage.setTitle(APPLICATION_ID + " - " + pm.getProjectName());
             stage.show();
         } catch (Exception e) {

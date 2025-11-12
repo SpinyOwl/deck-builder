@@ -1,6 +1,5 @@
 package com.spinyowl.cards;
 
-import com.spinyowl.cards.config.AppConfig;
 import com.spinyowl.cards.config.ConfigService;
 import com.spinyowl.cards.logging.LoggingInitializer;
 import javafx.application.Application;
@@ -15,40 +14,11 @@ public class MainApp extends Application {
     @Override
     public void start(Stage stage) throws Exception {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/main/ui/startup.fxml"));
-
-        AppConfig config = configService.getConfig();
-        Scene scene = new Scene(loader.load(), config.getWindowWidth(), config.getWindowHeight());
+        Scene scene = new Scene(loader.load(), 400, 400);
 
         stage.setTitle("SpinyOwl.DeckBuilder");
         stage.setScene(scene);
-        if (config.getWindowX() != null && config.getWindowY() != null) {
-            stage.setX(config.getWindowX());
-            stage.setY(config.getWindowY());
-        }
-        stage.setMaximized(config.isWindowMaximized());
-
-        stage.widthProperty().addListener((obs, oldVal, newVal) -> {
-            if (!stage.isMaximized()) {
-                configService.setWindowSize(newVal.doubleValue(), stage.getHeight());
-            }
-        });
-        stage.heightProperty().addListener((obs, oldVal, newVal) -> {
-            if (!stage.isMaximized()) {
-                configService.setWindowSize(stage.getWidth(), newVal.doubleValue());
-            }
-        });
-        stage.xProperty().addListener((obs, oldVal, newVal) -> {
-            if (!stage.isMaximized()) {
-                configService.setWindowPosition(newVal.doubleValue(), stage.getY());
-            }
-        });
-        stage.yProperty().addListener((obs, oldVal, newVal) -> {
-            if (!stage.isMaximized()) {
-                configService.setWindowPosition(stage.getX(), newVal.doubleValue());
-            }
-        });
-        stage.maximizedProperty().addListener((obs, oldVal, newVal) ->
-                configService.setWindowMaximized(newVal));
+        stage.setResizable(false);
 
         stage.setOnCloseRequest(event -> configService.save());
 

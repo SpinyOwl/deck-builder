@@ -4,6 +4,7 @@ import com.spinyowl.cards.config.AppPaths;
 import com.spinyowl.cards.service.CardRenderer;
 import com.spinyowl.cards.service.ProjectManager;
 import com.spinyowl.cards.service.ProjectWatcher;
+import com.spinyowl.cards.ui.WindowStateHandler;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -203,9 +204,14 @@ public class PreviewController {
         stopLogUpdates();
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/main/ui/startup.fxml"));
-            Scene scene = new Scene(loader.load(), 800, 600);
+            Scene scene = new Scene(loader.load(), 400, 400);
             Stage stage = (Stage) webView.getScene().getWindow();
+            WindowStateHandler.disable(stage);
+            stage.setMaximized(false);
             stage.setScene(scene);
+            stage.setResizable(false);
+            stage.setWidth(400);
+            stage.setHeight(400);
             stage.setTitle("SpinyOwl.DeckBuilder");
             stage.show();
             log.info("Project closed");
