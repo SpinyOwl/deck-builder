@@ -8,9 +8,18 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TreeCell;
+import javafx.scene.control.TreeItem;
+import javafx.scene.control.TreeView;
 import javafx.scene.web.WebView;
 import javafx.stage.Stage;
 
+import java.awt.Desktop;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
 import java.io.IOException;
 
 public class PreviewController {
@@ -18,6 +27,7 @@ public class PreviewController {
     @FXML private WebView webView;
     @FXML private TextField indexField;
     @FXML private ComboBox<String> langBox;
+    @FXML private TreeView<Path> projectTree;
 
     private ProjectManager projectManager;
     private CardRenderer renderer;
@@ -29,6 +39,7 @@ public class PreviewController {
         langBox.getItems().addAll("en");
         langBox.getSelectionModel().selectFirst();
         indexField.setText("0");
+        initProjectTree();
         refresh();
     }
 
@@ -65,6 +76,92 @@ public class PreviewController {
         } catch (Exception e) {
             e.printStackTrace();
             webView.getEngine().loadContent("<p>Error rendering card.</p>");
+        }
+    }
+
+    private void initProjectTree() {
+        if (projectManager == null || projectManager.getProjectDir() == null) {
+            return;
+        }
+
+        Path rootPath = projectManager.getProjectDir();
+        TreeItem<Path> rootItem = createTreeItem(rootPath);
+        rootItem.setExpanded(true);
+        projectTree.setRoot(rootItem);
+        projectTree.setShowRoot(true);
+        projectTree.setCellFactory(treeView -> createPathTreeCell());
+    }
+
+    private TreeItem<Path> createTreeItem(Path path) {
+        TreeItem<Path> item = new TreeItem<>(path);
+        if (Files.isDirectory(path)) {
+            try {
+                List<Path> children;
+                try (var stream = Files.list(path)) {
+                    children = stream
+                            .sorted(directoryFirst())
+                            .toList();
+                }
+                for (Path child : children) {
+                    item.getChildren().add(createTreeItem(child));
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return item;
+    }
+
+    private Comparator<Path> directoryFirst() {
+        return Comparator
+                .comparing((Path p) -> !Files.isDirectory(p))
+                .thenComparing(Path::getFileName, Comparator.nullsFirst(Comparator.naturalOrder()));
+    }
+
+    private TreeCell<Path> createPathTreeCell() {
+        TreeCell<Path> cell = new TreeCell<>() {
+            @Override
+            protected void updateItem(Path item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setGraphic(null);
+                } else {
+                    Path fileName = item.getFileName();
+                    setText(fileName != null ? fileName.toString() : item.toString());
+                }
+            }
+        };
+
+        cell.setOnMouseClicked(event -> {
+            if (event.getClickCount() == 2 && !cell.isEmpty()) {
+                Path path = cell.getItem();
+                if (Files.isDirectory(path)) {
+                    TreeItem<Path> treeItem = cell.getTreeItem();
+                    treeItem.setExpanded(!treeItem.isExpanded());
+                } else {
+                    openInDesktop(path);
+                }
+            }
+        });
+
+        return cell;
+    }
+
+    private void openInDesktop(Path path) {
+        if (!Desktop.isDesktopSupported()) {
+            return;
+        }
+
+        Desktop desktop = Desktop.getDesktop();
+        if (!desktop.isSupported(Desktop.Action.OPEN)) {
+            return;
+        }
+
+        try {
+            desktop.open(path.toFile());
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }

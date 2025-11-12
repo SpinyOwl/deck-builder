@@ -22,6 +22,9 @@
             </Button>
         </ToolBar>
     </top>
+    <left>
+        <TreeView fx:id="projectTree" prefWidth="260"/>
+    </left>
     <center>
         <WebView fx:id="webView"/>
     </center>
