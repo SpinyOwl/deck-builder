@@ -7,11 +7,12 @@ import com.spinyowl.cards.service.CardRenderer;
 import com.spinyowl.cards.service.ProjectManager;
 import com.spinyowl.cards.service.ProjectWatcher;
 import com.spinyowl.cards.ui.WindowStateHandler;
-import javafx.beans.value.ChangeListener;
 import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.ComboBox;
@@ -27,13 +28,11 @@ import javafx.scene.control.ToggleButton;
 import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.web.WebView;
 import javafx.stage.Stage;
 import lombok.extern.slf4j.Slf4j;
-
-import javafx.scene.Node;
-import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.StackPane;
 
 import java.awt.Desktop;
 import java.nio.file.FileAlreadyExistsException;
@@ -54,6 +53,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class PreviewController {
 
     private static final int MAX_LOG_CHARACTERS = 20_000;
+    private static final double DEFAULT_ZOOM = 1.0;
+    private static final double MIN_ZOOM = 0.25;
+    private static final double MAX_ZOOM = 3.0;
+    private static final double ZOOM_STEP = 0.1;
 
     @FXML private WebView webView;
     @FXML private Spinner<Integer> indexSpinner;
@@ -66,6 +69,7 @@ public class PreviewController {
     @FXML private StackPane projectTreeContainer;
     @FXML private ToggleButton projectTreeToggle;
     @FXML private BorderPane previewPane;
+    @FXML private BorderPane previewContainer;
     @FXML private ToggleButton previewToggle;
 
     private ProjectManager projectManager;
@@ -85,6 +89,8 @@ public class PreviewController {
     private SplitPane.Divider verticalDivider;
     private SplitPane.Divider horizontalDivider;
     private SplitPane.Divider previewDivider;
+    private double currentZoom = DEFAULT_ZOOM;
+    private boolean fitPreviewToContainer;
 
     @FXML
     public void initialize() {
@@ -118,6 +124,78 @@ public class PreviewController {
         return pos;
     }
 
+    private double clampZoom(double zoom) {
+        if (zoom < MIN_ZOOM) return MIN_ZOOM;
+        if (zoom > MAX_ZOOM) return MAX_ZOOM;
+        return zoom;
+    }
+
+    private void applyZoom(double zoom) {
+        if (webView == null) {
+            return;
+        }
+        double clamped = clampZoom(zoom);
+        currentZoom = clamped;
+        webView.setZoom(clamped);
+    }
+
+    private void adjustZoom(double delta) {
+        applyZoom(currentZoom + delta);
+    }
+
+    private void fitPreviewToContainer() {
+        if (webView == null || previewContainer == null) {
+            return;
+        }
+
+        Platform.runLater(() -> {
+            double containerWidth = previewContainer.getWidth();
+            double containerHeight = previewContainer.getHeight();
+            if (containerWidth <= 0 || containerHeight <= 0) {
+                return;
+            }
+
+            try {
+                Object widthObj = webView.getEngine().executeScript(
+                    "Math.max(document.body ? document.body.scrollWidth : 0, document.documentElement ? document.documentElement.scrollWidth : 0)"
+                );
+                Object heightObj = webView.getEngine().executeScript(
+                    "Math.max(document.body ? document.body.scrollHeight : 0, document.documentElement ? document.documentElement.scrollHeight : 0)"
+                );
+
+                double contentWidth = toDouble(widthObj);
+                double contentHeight = toDouble(heightObj);
+
+                if (contentWidth <= 0 || contentHeight <= 0) {
+                    applyZoom(DEFAULT_ZOOM);
+                    return;
+                }
+
+                double targetZoom = Math.min(containerWidth / contentWidth, containerHeight / contentHeight);
+                if (Double.isFinite(targetZoom) && targetZoom > 0) {
+                    applyZoom(targetZoom);
+                }
+            } catch (RuntimeException ex) {
+                log.warn("Failed to fit preview to container", ex);
+                applyZoom(DEFAULT_ZOOM);
+            }
+        });
+    }
+
+    private double toDouble(Object value) {
+        if (value instanceof Number number) {
+            return number.doubleValue();
+        }
+        if (value == null) {
+            return Double.NaN;
+        }
+        try {
+            return Double.parseDouble(value.toString());
+        } catch (NumberFormatException e) {
+            return Double.NaN;
+        }
+    }
+
     @FXML
     private void onToggleProjectTree() {
         if (projectTreeToggle == null) {
@@ -132,6 +210,30 @@ public class PreviewController {
             return;
         }
         updatePreviewVisibility(previewToggle.isSelected(), true);
+    }
+
+    @FXML
+    private void onZoomIn() {
+        fitPreviewToContainer = false;
+        adjustZoom(ZOOM_STEP);
+    }
+
+    @FXML
+    private void onZoomOut() {
+        fitPreviewToContainer = false;
+        adjustZoom(-ZOOM_STEP);
+    }
+
+    @FXML
+    private void onZoomReset() {
+        fitPreviewToContainer = false;
+        applyZoom(DEFAULT_ZOOM);
+    }
+
+    @FXML
+    private void onZoomFit() {
+        fitPreviewToContainer = true;
+        fitPreviewToContainer();
     }
 
     private void updateProjectTreeVisibility(boolean show, boolean persist) {

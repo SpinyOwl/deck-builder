@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.geometry.Insets?>
 <?import javafx.scene.web.WebView?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.control.*?>
@@ -51,11 +52,42 @@
                                 <StackPane fx:id="middleContentContainer" />
                                 <BorderPane fx:id="previewPane">
                                     <center>
-                                        <StackPane fx:id="previewContainer">
-                                            <children>
+                                        <BorderPane fx:id="previewContainer">
+                                            <center>
                                                 <WebView fx:id="webView"/>
-                                            </children>
-                                        </StackPane>
+                                            </center>
+                                            <bottom>
+                                                <ToolBar StackPane.alignment="BOTTOM_CENTER" styleClass="preview-toolbar"
+                                                         focusTraversable="false">
+                                                    <StackPane.margin>
+                                                        <Insets top="10" right="10"/>
+                                                    </StackPane.margin>
+                                                    <items>
+                                                        <Button text="-" onAction="#onZoomOut" focusTraversable="false">
+                                                            <tooltip>
+                                                                <Tooltip text="Zoom out"/>
+                                                            </tooltip>
+                                                        </Button>
+                                                        <Button text="+" onAction="#onZoomIn" focusTraversable="false">
+                                                            <tooltip>
+                                                                <Tooltip text="Zoom in"/>
+                                                            </tooltip>
+                                                        </Button>
+                                                        <Button text="Reset" onAction="#onZoomReset" focusTraversable="false">
+                                                            <tooltip>
+                                                                <Tooltip text="Reset zoom"/>
+                                                            </tooltip>
+                                                        </Button>
+                                                        <Button text="Fit" onAction="#onZoomFit" focusTraversable="false">
+                                                            <tooltip>
+                                                                <Tooltip text="Fit to size"/>
+                                                            </tooltip>
+                                                        </Button>
+                                                    </items>
+                                                </ToolBar>
+
+                                            </bottom>
+                                        </BorderPane>
                                     </center>
                                     <right>
                                         <ToolBar orientation="VERTICAL" prefWidth="30">
