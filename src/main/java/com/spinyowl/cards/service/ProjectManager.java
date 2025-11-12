@@ -30,25 +30,16 @@ public class ProjectManager {
 
     public void openProject(Path dir) throws IOException {
         this.projectDir = dir;
-        Path configFile = dir.resolve("project.yml");
-        if (!Files.exists(configFile))
-            throw new IOException("project.yml not found in " + dir);
-
-        try (InputStream in = Files.newInputStream(configFile)) {
-            Object loaded = new Yaml().load(in);
-            if (loaded instanceof Map<?, ?> map) {
-                Map<String, Object> cleaned = new LinkedHashMap<>();
-                map.forEach((key, value) -> {
-                    if (key instanceof String strKey) {
-                        cleaned.put(strKey, value);
-                    }
-                });
-                config = cleaned;
-            } else {
-                config = new LinkedHashMap<>();
-            }
-        }
+        loadConfiguration();
         log.info("Opened project: {}", getProjectName());
+    }
+
+    public void reloadProject() throws IOException {
+        if (projectDir == null) {
+            throw new IOException("Project directory is not set");
+        }
+        loadConfiguration();
+        log.info("Reloaded project configuration for {}", projectDir);
     }
 
     public String getProjectName() {
@@ -128,5 +119,31 @@ public class ProjectManager {
         BigDecimal decimal = new BigDecimal(number.toString());
         decimal = decimal.stripTrailingZeros();
         return decimal.toPlainString();
+    }
+
+    private void loadConfiguration() throws IOException {
+        Path dir = projectDir;
+        if (dir == null) {
+            throw new IOException("Project directory is not set");
+        }
+
+        Path configFile = dir.resolve("project.yml");
+        if (!Files.exists(configFile))
+            throw new IOException("project.yml not found in " + dir);
+
+        try (InputStream in = Files.newInputStream(configFile)) {
+            Object loaded = new Yaml().load(in);
+            if (loaded instanceof Map<?, ?> map) {
+                Map<String, Object> cleaned = new LinkedHashMap<>();
+                map.forEach((key, value) -> {
+                    if (key instanceof String strKey) {
+                        cleaned.put(strKey, value);
+                    }
+                });
+                config = cleaned;
+            } else {
+                config = new LinkedHashMap<>();
+            }
+        }
     }
 }
