@@ -5,6 +5,7 @@ import com.spinyowl.cards.service.CardRenderer;
 import com.spinyowl.cards.service.ProjectManager;
 import com.spinyowl.cards.service.ProjectWatcher;
 import javafx.application.Platform;
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -17,6 +18,7 @@ import javafx.scene.control.SplitPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.TitledPane;
+import javafx.scene.control.ToggleButton;
 import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
@@ -25,6 +27,7 @@ import javafx.stage.Stage;
 import lombok.extern.slf4j.Slf4j;
 
 import javafx.scene.Node;
+import javafx.scene.layout.StackPane;
 
 import java.awt.Desktop;
 import java.nio.file.FileAlreadyExistsException;
@@ -53,6 +56,9 @@ public class PreviewController {
     @FXML private TitledPane consolePane;
     @FXML private TextArea consoleTextArea;
     @FXML private SplitPane mainVerticalSplit;
+    @FXML private SplitPane mainHorizontalSplit;
+    @FXML private StackPane projectTreeContainer;
+    @FXML private ToggleButton projectTreeToggle;
 
     private ProjectManager projectManager;
     private CardRenderer renderer;
@@ -65,6 +71,8 @@ public class PreviewController {
     private volatile String lastDisplayedLog;
     private volatile double storedDividerPos = 0.8; // remember previous divider position when collapsing console
     private volatile boolean dividerStored = false;
+    private volatile double storedProjectTreeDividerPos = 0.25;
+    private volatile boolean projectDividerStored = false;
 
     @FXML
     public void initialize() {
@@ -105,12 +113,46 @@ public class PreviewController {
                 });
             }
         }
+        if (projectTreeToggle != null) {
+            updateProjectTreeVisibility(projectTreeToggle.isSelected());
+        }
     }
 
     private double clamp(double pos) {
         if (pos < 0.0) return 0.0;
         if (pos > 1.0) return 1.0;
         return pos;
+    }
+
+    @FXML
+    private void onToggleProjectTree() {
+        if (projectTreeToggle == null) {
+            return;
+        }
+        updateProjectTreeVisibility(projectTreeToggle.isSelected());
+    }
+
+    private void updateProjectTreeVisibility(boolean show) {
+        if (mainHorizontalSplit == null || projectTreeContainer == null) {
+            return;
+        }
+
+        ObservableList<Node> items = mainHorizontalSplit.getItems();
+        boolean currentlyVisible = items.contains(projectTreeContainer);
+
+        if (show && !currentlyVisible) {
+            items.add(0, projectTreeContainer);
+            SplitPane.setResizableWithParent(projectTreeContainer, true);
+            double target = projectDividerStored ? storedProjectTreeDividerPos : 0.25;
+            Platform.runLater(() -> mainHorizontalSplit.setDividerPositions(clamp(target)));
+        } else if (!show && currentlyVisible) {
+            if (!mainHorizontalSplit.getDividers().isEmpty()) {
+                storedProjectTreeDividerPos = mainHorizontalSplit.getDividers().get(0).getPosition();
+                projectDividerStored = true;
+            }
+            SplitPane.setResizableWithParent(projectTreeContainer, false);
+            items.remove(projectTreeContainer);
+        }
     }
 
     /**
