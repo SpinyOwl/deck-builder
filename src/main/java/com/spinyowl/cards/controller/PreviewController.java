@@ -8,7 +8,9 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TitledPane;
 import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
@@ -17,6 +19,9 @@ import javafx.stage.Stage;
 import lombok.extern.slf4j.Slf4j;
 
 import java.awt.Desktop;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
@@ -31,6 +36,8 @@ public class PreviewController {
     @FXML private TextField indexField;
     @FXML private ComboBox<String> langBox;
     @FXML private TreeView<Path> projectTree;
+    @FXML private TitledPane consolePane;
+    @FXML private TextArea consoleTextArea;
 
     private ProjectManager projectManager;
     private CardRenderer renderer;
@@ -46,12 +53,16 @@ public class PreviewController {
         indexField.setText("0");
         initProjectTree();
         refresh();
+        if (projectManager != null && projectManager.getProjectDir() != null) {
+            appendLog("Loaded project: " + projectManager.getProjectDir());
+        }
         startWatcher();
     }
 
     @FXML
     public void onReload() {
         performReload();
+        appendLog("Templates reloaded.");
     }
 
     @FXML
@@ -69,8 +80,9 @@ public class PreviewController {
             stage.setScene(scene);
             stage.setTitle("SpinyOwl.DeckBuilder");
             stage.show();
+            appendLog("Project closed.");
         } catch (IOException e) {
-            e.printStackTrace();
+            appendError("Failed to close project view", e);
         }
     }
 
@@ -79,8 +91,9 @@ public class PreviewController {
             int idx = Integer.parseInt(indexField.getText().trim());
             String html = renderer.renderCard(idx, langBox.getValue());
             Platform.runLater(() -> webView.getEngine().loadContent(html));
+            appendLog(String.format("Rendered card %d (%s)", idx, langBox.getValue()));
         } catch (Exception e) {
-            e.printStackTrace();
+            appendError("Error rendering card", e);
             webView.getEngine().loadContent("<p>Error rendering card.</p>");
         }
     }
@@ -128,7 +141,7 @@ public class PreviewController {
                     item.getChildren().add(createTreeItem(child));
                 }
             } catch (IOException e) {
-                e.printStackTrace();
+                appendError("Failed to read directory: " + path, e);
             }
         }
         return item;
@@ -221,7 +234,48 @@ public class PreviewController {
         try {
             desktop.open(path.toFile());
         } catch (IOException e) {
-            e.printStackTrace();
+            appendError("Failed to open file: " + path, e);
         }
+    }
+
+    private void appendLog(String message) {
+        if (consoleTextArea == null) {
+            return;
+        }
+        Platform.runLater(() -> {
+            if (!consoleTextArea.getText().isEmpty()) {
+                consoleTextArea.appendText(System.lineSeparator());
+            }
+            consoleTextArea.appendText(message);
+            consoleTextArea.positionCaret(consoleTextArea.getText().length());
+        });
+    }
+
+    private void appendError(String message, Exception e) {
+        if (consoleTextArea == null) {
+            if (e != null) {
+                e.printStackTrace();
+            }
+            return;
+        }
+        StringWriter sw = new StringWriter();
+        if (e != null) {
+            e.printStackTrace(new PrintWriter(sw));
+        }
+        String stackTrace = sw.toString();
+        Platform.runLater(() -> {
+            if (consolePane != null) {
+                consolePane.setExpanded(true);
+            }
+            if (!consoleTextArea.getText().isEmpty()) {
+                consoleTextArea.appendText(System.lineSeparator());
+            }
+            consoleTextArea.appendText(message);
+            if (!stackTrace.isEmpty()) {
+                consoleTextArea.appendText(System.lineSeparator());
+                consoleTextArea.appendText(stackTrace);
+            }
+            consoleTextArea.positionCaret(consoleTextArea.getText().length());
+        });
     }
 }

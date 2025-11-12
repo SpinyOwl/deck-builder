@@ -30,4 +30,12 @@
             </items>
         </SplitPane>
     </center>
+    <bottom>
+        <TitledPane fx:id="consolePane" text="Console Log" expanded="false" animated="false">
+            <content>
+                <TextArea fx:id="consoleTextArea" editable="false" wrapText="true" prefRowCount="5"
+                          style="-fx-font-family: 'Consolas', 'Courier New', monospace;"/>
+            </content>
+        </TitledPane>
+    </bottom>
 </BorderPane>
