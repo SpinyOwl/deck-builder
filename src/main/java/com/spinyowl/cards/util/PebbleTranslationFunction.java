@@ -47,11 +47,16 @@ public class PebbleTranslationFunction implements Function {
 
         Object langObj = firstNonNull(args, "lang", "1");
         String lang = langObj != null ? langObj.toString() : currentLanguage.get();
+        String fallbackLang = Optional.ofNullable(defaultLanguageSupplier.get())
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .orElse("en");
+
         if (lang == null || lang.isBlank()) {
-            lang = Optional.ofNullable(defaultLanguageSupplier.get()).orElse("en");
+            lang = fallbackLang;
         }
 
-        return translations.get(lang, key);
+        return translations.get(lang, key, fallbackLang);
     }
 
     private Object firstNonNull(Map<String, Object> args, String primaryKey, String positionalKey) {
