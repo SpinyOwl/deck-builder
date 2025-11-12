@@ -1,5 +1,6 @@
 package com.spinyowl.cards.controller;
 
+import com.spinyowl.cards.config.ConfigService;
 import com.spinyowl.cards.service.ProjectCreator;
 import com.spinyowl.cards.service.ProjectManager;
 import javafx.fxml.FXML;
@@ -18,11 +19,17 @@ public class StartupController {
 
     @FXML private Label statusLabel;
 
+    private final ConfigService configService = ConfigService.getInstance();
+
     @FXML
     public void onCreateProject() {
         DirectoryChooser chooser = new DirectoryChooser();
         chooser.setTitle("Select Project Folder");
-        File dir = chooser.showDialog(null);
+        File parent = configService.getLastProjectsParentDirectory();
+        if (parent != null) {
+            chooser.setInitialDirectory(parent);
+        }
+        File dir = chooser.showDialog(statusLabel.getScene().getWindow());
         if (dir == null) return;
 
         try {
@@ -41,7 +48,16 @@ public class StartupController {
     public void onOpenProject() {
         DirectoryChooser chooser = new DirectoryChooser();
         chooser.setTitle("Open Project Folder");
-        File dir = chooser.showDialog(null);
+        File recent = configService.getMostRecentProjectDirectory();
+        if (recent != null) {
+            chooser.setInitialDirectory(recent);
+        } else {
+            File parent = configService.getLastProjectsParentDirectory();
+            if (parent != null) {
+                chooser.setInitialDirectory(parent);
+            }
+        }
+        File dir = chooser.showDialog(statusLabel.getScene().getWindow());
         if (dir == null) return;
         openProject(dir.toPath());
     }
@@ -50,14 +66,22 @@ public class StartupController {
         try {
             ProjectManager pm = new ProjectManager();
             pm.openProject(dir);
+            configService.markProjectOpened(dir);
+            configService.setLastProjectsParent(dir.getParent());
 
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/main/ui/preview.fxml"));
-            Scene scene = new Scene(loader.load(), 1000, 700);
+            Stage stage = (Stage) statusLabel.getScene().getWindow();
+            double width = stage.getWidth();
+            double height = stage.getHeight();
+            Scene scene = new Scene(loader.load());
             PreviewController controller = loader.getController();
             controller.setProject(pm);
 
-            Stage stage = (Stage) statusLabel.getScene().getWindow();
             stage.setScene(scene);
+            if (width > 0 && height > 0) {
+                stage.setWidth(width);
+                stage.setHeight(height);
+            }
             stage.setTitle("Card Renderer - " + pm.getProjectName());
             stage.show();
         } catch (Exception e) {
