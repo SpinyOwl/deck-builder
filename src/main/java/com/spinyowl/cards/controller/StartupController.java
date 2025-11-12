@@ -114,7 +114,7 @@ public class StartupController {
                 stage.setWidth(width);
                 stage.setHeight(height);
             }
-            stage.setTitle("Card Renderer - " + pm.getProjectName());
+            stage.setTitle("SpinyOwl.DeckBuilder - " + pm.getProjectName());
             stage.show();
         } catch (Exception e) {
             log.error("Failed to open project", e);

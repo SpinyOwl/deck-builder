@@ -18,7 +18,7 @@ public class MainApp extends Application {
         AppConfig config = configService.getConfig();
         Scene scene = new Scene(loader.load(), config.getWindowWidth(), config.getWindowHeight());
 
-        stage.setTitle("Card Renderer");
+        stage.setTitle("SpinyOwl.DeckBuilder");
         stage.setScene(scene);
         if (config.getWindowX() != null && config.getWindowY() != null) {
             stage.setX(config.getWindowX());

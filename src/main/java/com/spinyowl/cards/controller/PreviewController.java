@@ -50,7 +50,7 @@ public class PreviewController {
             Scene scene = new Scene(loader.load(), 800, 600);
             Stage stage = (Stage) webView.getScene().getWindow();
             stage.setScene(scene);
-            stage.setTitle("Card Renderer");
+            stage.setTitle("SpinyOwl.DeckBuilder");
             stage.show();
         } catch (IOException e) {
             e.printStackTrace();
