@@ -104,10 +104,10 @@ public class StartupController {
             configService.markProjectOpened(dir);
             configService.setLastProjectsParent(dir.getParent());
 
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/main/ui/preview.fxml"));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/main/ui/deck-editor.fxml"));
             Stage stage = (Stage) statusLabel.getScene().getWindow();
             Scene scene = new Scene(loader.load());
-            PreviewController controller = loader.getController();
+            DeckEditorController controller = loader.getController();
             controller.setProject(pm);
 
             stage.setScene(scene);

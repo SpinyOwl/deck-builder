@@ -50,7 +50,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
-public class PreviewController {
+public class DeckEditorController {
 
     private static final int MAX_LOG_CHARACTERS = 20_000;
     private static final double DEFAULT_ZOOM = 1.0;
