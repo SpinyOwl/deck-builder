@@ -61,6 +61,10 @@ public class CardRenderer {
         }
     }
 
+    public int getCardCount() {
+        return cards != null ? cards.size() : 0;
+    }
+
     public String renderCard(int index, String lang) {
         if (index < 0 || index >= cards.size()) {
             log.warn("Card index {} out of bounds", index);

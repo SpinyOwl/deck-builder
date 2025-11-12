@@ -17,9 +17,10 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
-import javafx.scene.control.TextArea;
 import javafx.scene.control.SplitPane;
-import javafx.scene.control.TextField;
+import javafx.scene.control.Spinner;
+import javafx.scene.control.SpinnerValueFactory;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextInputDialog;
 import javafx.scene.control.TitledPane;
 import javafx.scene.control.ToggleButton;
@@ -54,7 +55,7 @@ public class PreviewController {
     private static final int MAX_LOG_CHARACTERS = 20_000;
 
     @FXML private WebView webView;
-    @FXML private TextField indexField;
+    @FXML private Spinner<Integer> indexSpinner;
     @FXML private ComboBox<String> langBox;
     @FXML private TreeView<Path> projectTree;
     @FXML private TitledPane consolePane;
@@ -271,7 +272,7 @@ public class PreviewController {
 
         langBox.getItems().addAll("en");
         langBox.getSelectionModel().selectFirst();
-        indexField.setText("0");
+        configureIndexSpinner();
         initProjectTree();
         refresh();
         startWatcher();
@@ -316,8 +317,18 @@ public class PreviewController {
     }
 
     private void refresh() {
+        if (renderer == null) {
+            return;
+        }
+
+        int cardCount = renderer.getCardCount();
+        if (cardCount <= 0) {
+            Platform.runLater(() -> webView.getEngine().loadContent("<p>No cards available.</p>"));
+            return;
+        }
+
         try {
-            int idx = Integer.parseInt(indexField.getText().trim());
+            int idx = getSelectedCardIndex(cardCount);
             String html = renderer.renderCard(idx, langBox.getValue());
             Platform.runLater(() -> webView.getEngine().loadContent(html));
             log.info("Rendered card {} ({})", idx, langBox.getValue());
@@ -340,8 +351,65 @@ public class PreviewController {
         }
 
         renderer.reload();
+        configureIndexSpinner();
         initProjectTree();
         refresh();
+    }
+
+    private void configureIndexSpinner() {
+        if (indexSpinner == null) {
+            return;
+        }
+
+        int cardCount = renderer != null ? renderer.getCardCount() : 0;
+        int maxIndex = Math.max(cardCount - 1, 0);
+
+        SpinnerValueFactory<Integer> valueFactory = indexSpinner.getValueFactory();
+        SpinnerValueFactory.IntegerSpinnerValueFactory integerFactory;
+        if (valueFactory instanceof SpinnerValueFactory.IntegerSpinnerValueFactory existingFactory) {
+            integerFactory = existingFactory;
+            integerFactory.setMin(0);
+            integerFactory.setMax(maxIndex);
+        } else {
+            integerFactory = new SpinnerValueFactory.IntegerSpinnerValueFactory(0, maxIndex, 0);
+            indexSpinner.setValueFactory(integerFactory);
+        }
+
+        if (cardCount > 0) {
+            Integer value = integerFactory.getValue();
+            if (value == null || value < 0 || value > maxIndex) {
+                integerFactory.setValue(0);
+            }
+        } else {
+            integerFactory.setValue(0);
+        }
+
+        indexSpinner.setDisable(cardCount <= 0);
+    }
+
+    private int getSelectedCardIndex(int cardCount) {
+        if (indexSpinner == null) {
+            return 0;
+        }
+
+        SpinnerValueFactory<Integer> valueFactory = indexSpinner.getValueFactory();
+        if (valueFactory == null) {
+            valueFactory = new SpinnerValueFactory.IntegerSpinnerValueFactory(0, cardCount - 1, 0);
+            indexSpinner.setValueFactory(valueFactory);
+        }
+
+        Integer value = valueFactory.getValue();
+        if (value == null) {
+            value = 0;
+            valueFactory.setValue(value);
+        }
+
+        int maxIndex = Math.max(0, cardCount - 1);
+        int clampedValue = Math.max(0, Math.min(value, maxIndex));
+        if (clampedValue != value) {
+            valueFactory.setValue(clampedValue);
+        }
+        return clampedValue;
     }
 
     private void initProjectTree() {

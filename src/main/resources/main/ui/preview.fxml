@@ -11,7 +11,7 @@
             <Label text="Language:"/>
             <ComboBox fx:id="langBox" prefWidth="100"/>
             <Label text="Index:"/>
-            <TextField fx:id="indexField" prefWidth="60"/>
+            <Spinner fx:id="indexSpinner" prefWidth="80" editable="true"/>
             <Button text="Show" onAction="#onShow"/>
             <Region HBox.hgrow="ALWAYS"/>
             <Button text="&#x2715;" onAction="#onCloseProject" focusTraversable="false"
