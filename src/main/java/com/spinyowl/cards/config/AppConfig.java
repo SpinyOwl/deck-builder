@@ -1,5 +1,8 @@
 package com.spinyowl.cards.config;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -9,11 +12,23 @@ import java.util.List;
  */
 public class AppConfig {
     private final List<String> recentProjects = new ArrayList<>();
+    @Setter
+    @Getter
     private String lastProjectsParent;
+    @Setter
+    @Getter
     private double windowWidth = 800;
+    @Setter
+    @Getter
     private double windowHeight = 600;
+    @Setter
+    @Getter
     private Double windowX;
+    @Setter
+    @Getter
     private Double windowY;
+    @Setter
+    @Getter
     private boolean windowMaximized;
 
     public List<String> getRecentProjects() {
@@ -32,57 +47,17 @@ public class AppConfig {
             return;
         }
         recentProjects.remove(projectPath);
-        recentProjects.add(0, projectPath);
+        recentProjects.addFirst(projectPath);
         while (recentProjects.size() > maxEntries) {
-            recentProjects.remove(recentProjects.size() - 1);
+            recentProjects.removeLast();
         }
     }
 
-    public String getLastProjectsParent() {
-        return lastProjectsParent;
+    public void removeRecentProject(String projectPath) {
+        if (projectPath == null || projectPath.isBlank()) {
+            return;
+        }
+        recentProjects.remove(projectPath);
     }
 
-    public void setLastProjectsParent(String lastProjectsParent) {
-        this.lastProjectsParent = lastProjectsParent;
-    }
-
-    public double getWindowWidth() {
-        return windowWidth;
-    }
-
-    public void setWindowWidth(double windowWidth) {
-        this.windowWidth = windowWidth;
-    }
-
-    public double getWindowHeight() {
-        return windowHeight;
-    }
-
-    public void setWindowHeight(double windowHeight) {
-        this.windowHeight = windowHeight;
-    }
-
-    public Double getWindowX() {
-        return windowX;
-    }
-
-    public void setWindowX(Double windowX) {
-        this.windowX = windowX;
-    }
-
-    public Double getWindowY() {
-        return windowY;
-    }
-
-    public void setWindowY(Double windowY) {
-        this.windowY = windowY;
-    }
-
-    public boolean isWindowMaximized() {
-        return windowMaximized;
-    }
-
-    public void setWindowMaximized(boolean windowMaximized) {
-        this.windowMaximized = windowMaximized;
-    }
 }

@@ -5,11 +5,19 @@
 
 <VBox xmlns:fx="http://javafx.com/fxml"
       fx:controller="com.spinyowl.cards.controller.StartupController"
-      spacing="15" alignment="CENTER" style="-fx-padding: 40;">
+      spacing="15" alignment="TOP_CENTER" style="-fx-padding: 40;" prefWidth="500">
     <Label text="Card Renderer" style="-fx-font-size:24px; -fx-font-weight:bold;" />
     <HBox spacing="10">
         <Button text="Create New Project" onAction="#onCreateProject"/>
         <Button text="Open Existing Project" onAction="#onOpenProject"/>
     </HBox>
+    <VBox spacing="5" prefWidth="460">
+        <Label text="Recent Projects" style="-fx-font-weight: bold;" />
+        <ListView fx:id="recentProjectsList" prefHeight="200">
+            <placeholder>
+                <Label text="No recent projects" textFill="gray" />
+            </placeholder>
+        </ListView>
+    </VBox>
     <Label fx:id="statusLabel" textFill="gray" />
 </VBox>

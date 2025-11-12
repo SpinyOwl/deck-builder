@@ -1,29 +1,44 @@
 package com.spinyowl.cards.config;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.Yaml;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Properties;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 
 @Slf4j
 public class ConfigService {
-    private static final Path CONFIG_DIR = Paths.get(System.getProperty("user.home"), "DeckBuilder");
-    private static final Path CONFIG_FILE = CONFIG_DIR.resolve("config.properties");
+    private static final Path CONFIG_DIR = determineConfigDirectory();
+    private static final Path CONFIG_FILE = CONFIG_DIR.resolve("config.yaml");
     private static final int MAX_RECENT_PROJECTS = 10;
 
     private static final ConfigService INSTANCE = new ConfigService();
+    public static final String DECK_BUILDER = "SpinyOwl.DeckBuilder";
 
+    @Getter
     private final AppConfig config = new AppConfig();
+    private final Yaml yaml;
 
     private ConfigService() {
+        DumperOptions options = new DumperOptions();
+        options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+        options.setPrettyFlow(true);
+        options.setIndent(2);
+        yaml = new Yaml(options);
         load();
     }
 
@@ -31,15 +46,16 @@ public class ConfigService {
         return INSTANCE;
     }
 
-    public AppConfig getConfig() {
-        return config;
-    }
-
     public void markProjectOpened(Path projectDir) {
         if (projectDir == null) {
             return;
         }
         config.addRecentProject(projectDir.toAbsolutePath().toString(), MAX_RECENT_PROJECTS);
+        save();
+    }
+
+    public void removeRecentProject(String projectPath) {
+        config.removeRecentProject(projectPath);
         save();
     }
 
@@ -103,26 +119,27 @@ public class ConfigService {
             return;
         }
 
-        Properties props = new Properties();
+        Map<String, Object> root = new LinkedHashMap<>();
         if (config.getLastProjectsParent() != null) {
-            props.setProperty("lastProjectsParent", config.getLastProjectsParent());
-        }
-        props.setProperty("windowWidth", Double.toString(config.getWindowWidth()));
-        props.setProperty("windowHeight", Double.toString(config.getWindowHeight()));
-        if (config.getWindowX() != null) {
-            props.setProperty("windowX", Double.toString(config.getWindowX()));
-        }
-        if (config.getWindowY() != null) {
-            props.setProperty("windowY", Double.toString(config.getWindowY()));
-        }
-        props.setProperty("windowMaximized", Boolean.toString(config.isWindowMaximized()));
-        List<String> recent = config.getRecentProjects();
-        for (int i = 0; i < recent.size(); i++) {
-            props.setProperty("recentProject." + i, recent.get(i));
+            root.put("lastProjectsParent", config.getLastProjectsParent());
         }
 
-        try (OutputStream out = Files.newOutputStream(CONFIG_FILE)) {
-            props.store(out, "DeckBuilder configuration");
+        Map<String, Object> window = new LinkedHashMap<>();
+        window.put("width", config.getWindowWidth());
+        window.put("height", config.getWindowHeight());
+        if (config.getWindowX() != null) {
+            window.put("x", config.getWindowX());
+        }
+        if (config.getWindowY() != null) {
+            window.put("y", config.getWindowY());
+        }
+        window.put("maximized", config.isWindowMaximized());
+        root.put("window", window);
+
+        root.put("recentProjects", new ArrayList<>(config.getRecentProjects()));
+
+        try (BufferedWriter writer = Files.newBufferedWriter(CONFIG_FILE)) {
+            yaml.dump(root, writer);
         } catch (IOException e) {
             log.warn("Failed to write configuration to {}", CONFIG_FILE, e);
         }
@@ -133,58 +150,103 @@ public class ConfigService {
             return;
         }
 
-        Properties props = new Properties();
-        try (InputStream in = Files.newInputStream(CONFIG_FILE)) {
-            props.load(in);
+        try (BufferedReader reader = Files.newBufferedReader(CONFIG_FILE)) {
+            Object loaded = yaml.load(reader);
+            if (!(loaded instanceof Map<?, ?> data)) {
+                return;
+            }
+
+            config.setLastProjectsParent(asString(data.get("lastProjectsParent")));
+
+            Object windowObj = data.get("window");
+            if (windowObj instanceof Map<?, ?> window) {
+                config.setWindowWidth(asDouble(window.get("width"), config.getWindowWidth()));
+                config.setWindowHeight(asDouble(window.get("height"), config.getWindowHeight()));
+                config.setWindowX(asNullableDouble(window.get("x")));
+                config.setWindowY(asNullableDouble(window.get("y")));
+                config.setWindowMaximized(asBoolean(window.get("maximized"), config.isWindowMaximized()));
+            }
+
+            Object recentObj = data.get("recentProjects");
+            if (recentObj instanceof List<?> list) {
+                List<String> recentProjects = new ArrayList<>();
+                for (Object item : list) {
+                    String value = asString(item);
+                    if (value != null && !value.isBlank()) {
+                        recentProjects.add(value);
+                    }
+                }
+                if (recentProjects.size() > MAX_RECENT_PROJECTS) {
+                    recentProjects = new ArrayList<>(recentProjects.subList(0, MAX_RECENT_PROJECTS));
+                }
+                config.setRecentProjects(recentProjects);
+            }
         } catch (IOException e) {
             log.warn("Failed to load configuration from {}", CONFIG_FILE, e);
-            return;
         }
+    }
 
-        config.setLastProjectsParent(props.getProperty("lastProjectsParent"));
-        config.setWindowWidth(parseDouble(props.getProperty("windowWidth"), config.getWindowWidth()));
-        config.setWindowHeight(parseDouble(props.getProperty("windowHeight"), config.getWindowHeight()));
-        config.setWindowX(parseNullableDouble(props.getProperty("windowX")));
-        config.setWindowY(parseNullableDouble(props.getProperty("windowY")));
-        config.setWindowMaximized(parseBoolean(props.getProperty("windowMaximized"), config.isWindowMaximized()));
-
-        List<String> recentProjects = new ArrayList<>();
-        for (int i = 0; i < MAX_RECENT_PROJECTS; i++) {
-            String value = props.getProperty("recentProject." + i);
-            if (value == null) {
-                break;
+    private static Path determineConfigDirectory() {
+        String osName = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
+        if (osName.contains("win")) {
+            String appData = System.getenv("APPDATA");
+            if (appData != null && !appData.isBlank()) {
+                return Paths.get(appData, DECK_BUILDER);
             }
-            recentProjects.add(value);
+            String userHome = System.getProperty("user.home");
+            if (userHome != null) {
+                return Paths.get(userHome, "AppData", "Roaming", DECK_BUILDER);
+            }
+        } else if (osName.contains("mac")) {
+            String userHome = System.getProperty("user.home", "");
+            return Paths.get(userHome, "Library", "Application Support", DECK_BUILDER);
         }
-        config.setRecentProjects(recentProjects);
+        String userHome = System.getProperty("user.home", "");
+        return Paths.get(userHome, ".config", DECK_BUILDER);
     }
 
-    private double parseDouble(String value, double fallback) {
-        if (value == null) {
-            return fallback;
-        }
-        try {
-            return Double.parseDouble(value);
-        } catch (NumberFormatException ex) {
-            return fallback;
-        }
-    }
-
-    private Double parseNullableDouble(String value) {
+    private String asString(Object value) {
         if (value == null) {
             return null;
         }
-        try {
-            return Double.parseDouble(value);
-        } catch (NumberFormatException ex) {
-            return null;
-        }
+        return Objects.toString(value, null);
     }
 
-    private boolean parseBoolean(String value, boolean fallback) {
-        if (value == null) {
-            return fallback;
+    private double asDouble(Object value, double fallback) {
+        if (value instanceof Number number) {
+            return number.doubleValue();
         }
-        return Boolean.parseBoolean(value);
+        if (value instanceof String string) {
+            Double string1 = getADouble(string);
+            if (string1 != null) return string1;
+        }
+        return fallback;
+    }
+
+    private Double asNullableDouble(Object value) {
+        return switch (value) {
+            case Number number -> number.doubleValue();
+            case String string -> getADouble(string);
+            case null, default -> null;
+        };
+    }
+
+    private static Double getADouble(String string) {
+        try {
+            return Double.parseDouble(string);
+        } catch (NumberFormatException ignored) {
+            log.warn("Failed to convert {} to Double", string);
+        }
+        return null;
+    }
+
+    private boolean asBoolean(Object value, boolean fallback) {
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        if (value instanceof String string) {
+            return Boolean.parseBoolean(string);
+        }
+        return fallback;
     }
 }
