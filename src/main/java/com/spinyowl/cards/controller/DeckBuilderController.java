@@ -44,6 +44,7 @@ public class DeckBuilderController {
     @FXML private BorderPane previewPane;
     @FXML private BorderPane previewContainer;
     @FXML private ToggleButton previewToggle;
+    @FXML private ToggleButton zoomFitToggle;
 
     private ProjectManager projectManager;
     private CardRenderer renderer;
@@ -58,7 +59,7 @@ public class DeckBuilderController {
 
     @FXML
     public void initialize() {
-        previewController = new PreviewController(webView, previewPane, previewContainer, previewToggle, mainHorizontalSplit, configService, appConfig);
+        previewController = new PreviewController(webView, previewPane, previewContainer, previewToggle, zoomFitToggle, mainHorizontalSplit, configService, appConfig);
         consoleLogController = new ConsoleLogController(configService, appConfig, consolePane, consoleTextArea, mainVerticalSplit);
         projectViewController = new ProjectViewController(projectTree, projectTreeContainer, projectTreeToggle, previewPane, mainHorizontalSplit, configService, appConfig, this::expandConsole);
 

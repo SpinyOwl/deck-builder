@@ -78,11 +78,12 @@
                                                                 <Tooltip text="Reset zoom"/>
                                                             </tooltip>
                                                         </Button>
-                                                        <Button text="Fit" onAction="#onZoomFit" focusTraversable="false">
+                                                        <ToggleButton fx:id="zoomFitToggle" text="Fit" onAction="#onZoomFit"
+                                                                      focusTraversable="false">
                                                             <tooltip>
                                                                 <Tooltip text="Fit to size"/>
                                                             </tooltip>
-                                                        </Button>
+                                                        </ToggleButton>
                                                     </items>
                                                 </ToolBar>
 

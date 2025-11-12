@@ -25,12 +25,17 @@ public class PreviewController {
     private final BorderPane previewPane;
     private final BorderPane previewContainer;
     private final ToggleButton previewToggle;
+    private final ToggleButton zoomFitToggle;
     private final SplitPane mainHorizontalSplit;
 
     private ChangeListener<Number> previewDividerListener;
     private SplitPane.Divider previewDivider;
     private double currentZoom = DEFAULT_ZOOM;
-    private boolean fitPreviewToContainer;
+    private final ChangeListener<Number> previewResizeListener = (obs, oldVal, newVal) -> {
+        if (isFitToContainerActive()) {
+            fitPreviewToContainer();
+        }
+    };
 
     @Setter
     private ProjectViewController projectViewController;
@@ -39,6 +44,7 @@ public class PreviewController {
                              BorderPane previewPane,
                              BorderPane previewContainer,
                              ToggleButton previewToggle,
+                             ToggleButton zoomFitToggle,
                              SplitPane mainHorizontalSplit,
                              ConfigService configService,
                              AppConfig appConfig) {
@@ -46,6 +52,7 @@ public class PreviewController {
         this.previewPane = previewPane;
         this.previewContainer = previewContainer;
         this.previewToggle = previewToggle;
+        this.zoomFitToggle = zoomFitToggle;
         this.mainHorizontalSplit = mainHorizontalSplit;
         this.configService = configService;
         this.appConfig = appConfig;
@@ -54,6 +61,15 @@ public class PreviewController {
     public void initialize() {
         if (previewToggle != null) {
             previewToggle.setSelected(appConfig.isPreviewVisible());
+        }
+
+        if (previewPane != null) {
+            previewPane.widthProperty().addListener(previewResizeListener);
+            previewPane.heightProperty().addListener(previewResizeListener);
+        }
+        if (previewContainer != null) {
+            previewContainer.widthProperty().addListener(previewResizeListener);
+            previewContainer.heightProperty().addListener(previewResizeListener);
         }
     }
 
@@ -69,22 +85,26 @@ public class PreviewController {
     }
 
     public void zoomIn() {
-        fitPreviewToContainer = false;
+        disableFitToContainer();
         adjustZoom(ZOOM_STEP);
     }
 
     public void zoomOut() {
-        fitPreviewToContainer = false;
+        disableFitToContainer();
         adjustZoom(-ZOOM_STEP);
     }
 
     public void zoomReset() {
-        fitPreviewToContainer = false;
+        disableFitToContainer();
         applyZoom(DEFAULT_ZOOM);
     }
 
     public void zoomFit() {
-        fitPreviewToContainer = true;
+        if (zoomFitToggle != null && !zoomFitToggle.isSelected()) {
+            disableFitToContainer();
+            return;
+        }
+
         fitPreviewToContainer();
     }
 
@@ -190,11 +210,14 @@ public class PreviewController {
     }
 
     private void fitPreviewToContainer() {
-        if (webView == null || previewContainer == null) {
+        if (webView == null || previewContainer == null || !isFitToContainerActive()) {
             return;
         }
 
         Platform.runLater(() -> {
+            if (!isFitToContainerActive()) {
+                return;
+            }
             double containerWidth = previewContainer.getWidth();
             double containerHeight = previewContainer.getHeight();
             if (containerWidth <= 0 || containerHeight <= 0) {
@@ -203,10 +226,10 @@ public class PreviewController {
 
             try {
                 Object widthObj = webView.getEngine().executeScript(
-                    "Math.max(document.body ? document.body.scrollWidth : 0, document.documentElement ? document.documentElement.scrollWidth : 0)"
+                        "Math.max(document.body ? document.body.scrollWidth : 0, document.documentElement ? document.documentElement.scrollWidth : 0)"
                 );
                 Object heightObj = webView.getEngine().executeScript(
-                    "Math.max(document.body ? document.body.scrollHeight : 0, document.documentElement ? document.documentElement.scrollHeight : 0)"
+                        "Math.max(document.body ? document.body.scrollHeight : 0, document.documentElement ? document.documentElement.scrollHeight : 0)"
                 );
 
                 double contentWidth = toDouble(widthObj);
@@ -218,6 +241,8 @@ public class PreviewController {
                 }
 
                 double targetZoom = Math.min(containerWidth / contentWidth, containerHeight / contentHeight);
+
+                log.info("Zooming on autofit: {},{},{},{},{}", containerWidth, containerHeight, contentWidth, contentHeight, targetZoom);
                 if (Double.isFinite(targetZoom) && targetZoom > 0) {
                     applyZoom(targetZoom);
                 }
@@ -252,6 +277,16 @@ public class PreviewController {
         if (zoom < MIN_ZOOM) return MIN_ZOOM;
         if (zoom > MAX_ZOOM) return MAX_ZOOM;
         return zoom;
+    }
+
+    private void disableFitToContainer() {
+        if (zoomFitToggle != null) {
+            zoomFitToggle.setSelected(false);
+        }
+    }
+
+    private boolean isFitToContainerActive() {
+        return zoomFitToggle == null || zoomFitToggle.isSelected();
     }
 }
 
