@@ -50,6 +50,9 @@ javafx {
     modules("javafx.controls", "javafx.fxml", "javafx.web")
 }
 
+application {
+    mainClass = "com.spinyowl.cards.MainApp"
+}
 tasks.test {
     useJUnitPlatform()
 }
