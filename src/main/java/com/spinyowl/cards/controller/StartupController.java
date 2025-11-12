@@ -26,8 +26,9 @@ public class StartupController {
         if (dir == null) return;
 
         try {
-            String name = "NewCardProject";
-            Path projectDir = dir.toPath().resolve(name);
+            Path projectDir = dir.toPath();
+            Path fileName = projectDir.getFileName();
+            String name = fileName != null && !fileName.toString().isEmpty() ? fileName.toString() : "NewCardProject";
             ProjectCreator.createDefaultProject(projectDir, name);
             openProject(projectDir);
         } catch (Exception e) {
