@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.*;
 import java.util.Map;
 
@@ -19,37 +20,45 @@ public class ProjectCreator {
 
         // project.yml
         Yaml yaml = new Yaml();
-        Map<String, Object> config = Map.of(
-                "name", name,
-                "default_language", "en",
-                "default_template", "default.html",
-                "cards_file", "cards.csv"
-        );
+        Map<String, Object> config = loadProjectConfig();
+        config.put("name", name);
         Files.writeString(projectDir.resolve("project.yml"), yaml.dump(config));
 
         // cards.csv
-        Files.writeString(projectDir.resolve("cards.csv"),
-                "id,name,description,image,template\n" +
-                        "1,Sword,Sharp weapon,,\n");
+        copyResource("default_project/cards.csv", projectDir.resolve("cards.csv"));
 
         // default.html
-        Files.writeString(projectDir.resolve("templates/default.html"), """
-                <html>
-                  <body style="width:2.5in;height:3.5in;border:1px solid black;
-                               display:flex;flex-direction:column;align-items:center;
-                               justify-content:center;font-family:Arial;">
-                    <img src="{{ image }}" style="width:80%;height:auto;margin-bottom:8px;">
-                    <div><b>{{ t('name') }}:</b> {{ name }}</div>
-                    <div><b>{{ t('description') }}:</b> {{ description }}</div>
-                  </body>
-                </html>
-                """);
+        copyResource("default_project/templates/default.html", projectDir.resolve("templates/default.html"));
 
         // i18n/en.yml
-        Files.writeString(projectDir.resolve("i18n/en.yml"),
-                "name: Name\n" +
-                        "description: Description\n");
+        copyResource("default_project/i18n/en.yml", projectDir.resolve("i18n/en.yml"));
 
         log.info("Default project created successfully.");
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> loadProjectConfig() throws IOException {
+        Yaml yaml = new Yaml();
+        try (InputStream in = ProjectCreator.class.getClassLoader()
+                .getResourceAsStream("default_project/project.yml")) {
+            if (in == null) {
+                throw new IOException("Default project configuration template not found");
+            }
+            Object loaded = yaml.load(in);
+            if (!(loaded instanceof Map<?, ?> map)) {
+                throw new IOException("Invalid default project configuration template");
+            }
+            return (Map<String, Object>) map;
+        }
+    }
+
+    private static void copyResource(String resourcePath, Path target) throws IOException {
+        try (InputStream in = ProjectCreator.class.getClassLoader().getResourceAsStream(resourcePath)) {
+            if (in == null) {
+                throw new IOException("Resource not found: " + resourcePath);
+            }
+            Files.createDirectories(target.getParent());
+            Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
+        }
     }
 }
