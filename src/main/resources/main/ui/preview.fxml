@@ -23,19 +23,24 @@
         </ToolBar>
     </top>
     <center>
-        <SplitPane dividerPositions="0.25">
+        <!-- Make console resizable by placing it in a vertical SplitPane with the main content -->
+        <SplitPane fx:id="mainVerticalSplit" orientation="VERTICAL" dividerPositions="0.8">
             <items>
-                <TreeView fx:id="projectTree" minWidth="50" prefWidth="260"/>
-                <WebView fx:id="webView"/>
+                <!-- Top area: the original left-right SplitPane with project tree and preview -->
+                <SplitPane dividerPositions="0.25">
+                    <items>
+                        <TreeView fx:id="projectTree" minWidth="50" prefWidth="260"/>
+                        <WebView fx:id="webView"/>
+                    </items>
+                </SplitPane>
+                <!-- Bottom area: console log, now resizable via the SplitPane divider -->
+                <TitledPane fx:id="consolePane" text="Console Log" expanded="false" animated="false" maxHeight="Infinity">
+                    <content>
+                        <TextArea fx:id="consoleTextArea" editable="false" wrapText="true" prefRowCount="5"
+                                  style="-fx-font-family: 'Consolas', 'Courier New', monospace;"/>
+                    </content>
+                </TitledPane>
             </items>
         </SplitPane>
     </center>
-    <bottom>
-        <TitledPane fx:id="consolePane" text="Console Log" expanded="false" animated="false">
-            <content>
-                <TextArea fx:id="consoleTextArea" editable="false" wrapText="true" prefRowCount="5"
-                          style="-fx-font-family: 'Consolas', 'Courier New', monospace;"/>
-            </content>
-        </TitledPane>
-    </bottom>
 </BorderPane>

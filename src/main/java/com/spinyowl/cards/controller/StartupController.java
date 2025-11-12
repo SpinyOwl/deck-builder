@@ -29,6 +29,8 @@ import java.nio.file.Files;
 import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 
+import static com.spinyowl.cards.config.AppPaths.APPLICATION_ID;
+
 @Slf4j
 public class StartupController {
 
@@ -114,7 +116,7 @@ public class StartupController {
                 stage.setWidth(width);
                 stage.setHeight(height);
             }
-            stage.setTitle("SpinyOwl.DeckBuilder - " + pm.getProjectName());
+            stage.setTitle(APPLICATION_ID + " - " + pm.getProjectName());
             stage.show();
         } catch (Exception e) {
             log.error("Failed to open project", e);

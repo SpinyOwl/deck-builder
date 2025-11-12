@@ -12,23 +12,19 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
 @Slf4j
 public class ConfigService {
-    private static final Path CONFIG_DIR = determineConfigDirectory();
-    private static final Path CONFIG_FILE = CONFIG_DIR.resolve("config.yml");
+    private static final Path CONFIG_DIR = AppPaths.getConfigDirectory();
+    private static final Path CONFIG_FILE = AppPaths.getConfigFile();
     private static final int MAX_RECENT_PROJECTS = 10;
 
     private static final ConfigService INSTANCE = new ConfigService();
-    public static final String DECK_BUILDER = "SpinyOwl.DeckBuilder";
-
     @Getter
     private final AppConfig config = new AppConfig();
     private final Yaml yaml;
@@ -184,25 +180,6 @@ public class ConfigService {
         } catch (IOException e) {
             log.warn("Failed to load configuration from {}", CONFIG_FILE, e);
         }
-    }
-
-    private static Path determineConfigDirectory() {
-        String osName = System.getProperty("os.name", "").toLowerCase(Locale.ROOT);
-        if (osName.contains("win")) {
-            String appData = System.getenv("APPDATA");
-            if (appData != null && !appData.isBlank()) {
-                return Paths.get(appData, DECK_BUILDER);
-            }
-            String userHome = System.getProperty("user.home");
-            if (userHome != null) {
-                return Paths.get(userHome, "AppData", "Roaming", DECK_BUILDER);
-            }
-        } else if (osName.contains("mac")) {
-            String userHome = System.getProperty("user.home", "");
-            return Paths.get(userHome, "Library", "Application Support", DECK_BUILDER);
-        }
-        String userHome = System.getProperty("user.home", "");
-        return Paths.get(userHome, ".config", DECK_BUILDER);
     }
 
     private String asString(Object value) {
