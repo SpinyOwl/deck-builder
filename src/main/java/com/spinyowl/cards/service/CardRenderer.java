@@ -73,6 +73,7 @@ public class CardRenderer {
         try {
             Map<String, Object> ctx = new HashMap<>(card.asMap());
             ctx.put("lang", lang);
+            ctx.put("project", projectManager.getProjectProperties());
 
             PebbleTemplate template = engine.getTemplate(tpl);
             StringWriter sw = new StringWriter();

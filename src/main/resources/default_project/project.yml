@@ -2,3 +2,6 @@ name: Default Project
 default_language: en
 default_template: default.html
 cards_file: cards.csv
+card:
+  width: 2.5in
+  height: 3.5in

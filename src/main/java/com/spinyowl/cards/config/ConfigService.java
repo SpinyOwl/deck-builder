@@ -23,7 +23,7 @@ import java.util.Objects;
 @Slf4j
 public class ConfigService {
     private static final Path CONFIG_DIR = determineConfigDirectory();
-    private static final Path CONFIG_FILE = CONFIG_DIR.resolve("config.yaml");
+    private static final Path CONFIG_FILE = CONFIG_DIR.resolve("config.yml");
     private static final int MAX_RECENT_PROJECTS = 10;
 
     private static final ConfigService INSTANCE = new ConfigService();
