@@ -22,10 +22,12 @@
             </Button>
         </ToolBar>
     </top>
-    <left>
-        <TreeView fx:id="projectTree" prefWidth="260"/>
-    </left>
     <center>
-        <WebView fx:id="webView"/>
+        <SplitPane dividerPositions="0.25">
+            <items>
+                <TreeView fx:id="projectTree" minWidth="50" prefWidth="260"/>
+                <WebView fx:id="webView"/>
+            </items>
+        </SplitPane>
     </center>
 </BorderPane>
