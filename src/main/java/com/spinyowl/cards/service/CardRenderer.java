@@ -1,10 +1,8 @@
 package com.spinyowl.cards.service;
 
 import com.spinyowl.cards.model.Card;
-import com.spinyowl.cards.util.CsvLoader;
 import com.spinyowl.cards.util.PebbleCardTranslationFunction;
 import com.spinyowl.cards.util.PebbleTranslationFunction;
-import com.spinyowl.cards.util.TranslationService;
 import io.pebbletemplates.pebble.PebbleEngine;
 import io.pebbletemplates.pebble.loader.FileLoader;
 import io.pebbletemplates.pebble.template.PebbleTemplate;
@@ -13,35 +11,45 @@ import io.pebbletemplates.pebble.extension.Function;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.StringWriter;
-import java.nio.file.Path;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
-public class CardRenderer {
+public class CardRenderer implements ProjectManager.ReloadListener {
     private final ProjectManager projectManager;
     private PebbleEngine engine;
-    private List<Card> cards;
-    private TranslationService translations;
+    private List<Card> cards = List.of();
     private PebbleTranslationFunction translationFunction;
     private PebbleCardTranslationFunction cardTranslationFunction;
 
     public CardRenderer(ProjectManager pm) {
         this.projectManager = pm;
-        reload();
+        projectManager.addReloadListener(this);
+        rebuildFromProject();
     }
 
-    public void reload() {
-        log.info("Reloading project assets from {}", projectManager.getProjectDir());
+    @Override
+    public void onProjectReload(ProjectManager manager) {
+        rebuildFromProject();
+    }
+
+    private void rebuildFromProject() {
+        log.info("Rebuilding renderer using project data from {}", projectManager.getProjectDir());
         try {
-            Path csv = projectManager.resolve("cards.csv");
-            cards = CsvLoader.loadCards(csv);
-            translations = new TranslationService(projectManager.resolve("i18n"));
-            translationFunction = new PebbleTranslationFunction(translations, projectManager::getDefaultLanguage);
-            TranslationService cardTranslations = new TranslationService(projectManager.resolve("i18n/cards"));
-            cardTranslationFunction = new PebbleCardTranslationFunction(cardTranslations, projectManager::getDefaultLanguage);
+            cards = projectManager.getCards();
+
+            translationFunction = new PebbleTranslationFunction(
+                    projectManager.getTranslations(),
+                    projectManager::getDefaultLanguage);
+
+            cardTranslationFunction = new PebbleCardTranslationFunction(
+                    projectManager.getCardTranslations(),
+                    projectManager::getDefaultLanguage);
 
             FileLoader loader = new FileLoader();
-            loader.setPrefix(projectManager.resolve("templates").toString());
+            loader.setPrefix(projectManager.getTemplatesDirectory().toString());
             engine = new PebbleEngine.Builder()
                     .loader(loader)
                     .extension(new AbstractExtension() {
@@ -55,9 +63,11 @@ public class CardRenderer {
                     })
                     .build();
 
-            log.info("Loaded {} cards successfully", cards.size());
+            log.info("Renderer initialized with {} cards", cards.size());
         } catch (Exception e) {
-            log.error("Failed to reload project assets", e);
+            log.error("Failed to rebuild card renderer", e);
+            cards = List.of();
+            engine = null;
         }
     }
 

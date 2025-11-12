@@ -192,8 +192,6 @@ public class DeckBuilderController {
         } catch (IOException e) {
             log.error("Failed to reload project configuration", e);
         }
-
-        renderer.reload();
         configureIndexSpinner();
         projectViewController.initProjectTree();
         refresh();
