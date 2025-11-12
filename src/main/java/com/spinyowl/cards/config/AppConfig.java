@@ -30,6 +30,18 @@ public class AppConfig {
     @Setter
     @Getter
     private boolean windowMaximized;
+    @Setter
+    @Getter
+    private boolean consoleExpanded = false;
+    @Setter
+    @Getter
+    private double consoleDividerPosition = 0.8;
+    @Setter
+    @Getter
+    private boolean projectTreeVisible = true;
+    @Setter
+    @Getter
+    private double projectTreeDividerPosition = 0.25;
 
     public List<String> getRecentProjects() {
         return Collections.unmodifiableList(recentProjects);

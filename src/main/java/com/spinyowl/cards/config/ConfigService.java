@@ -132,6 +132,13 @@ public class ConfigService {
         window.put("maximized", config.isWindowMaximized());
         root.put("window", window);
 
+        Map<String, Object> preview = new LinkedHashMap<>();
+        preview.put("consoleExpanded", config.isConsoleExpanded());
+        preview.put("consoleDividerPosition", config.getConsoleDividerPosition());
+        preview.put("projectTreeVisible", config.isProjectTreeVisible());
+        preview.put("projectTreeDividerPosition", config.getProjectTreeDividerPosition());
+        root.put("preview", preview);
+
         root.put("recentProjects", new ArrayList<>(config.getRecentProjects()));
 
         try (BufferedWriter writer = Files.newBufferedWriter(CONFIG_FILE)) {
@@ -161,6 +168,14 @@ public class ConfigService {
                 config.setWindowX(asNullableDouble(window.get("x")));
                 config.setWindowY(asNullableDouble(window.get("y")));
                 config.setWindowMaximized(asBoolean(window.get("maximized"), config.isWindowMaximized()));
+            }
+
+            Object previewObj = data.get("preview");
+            if (previewObj instanceof Map<?, ?> preview) {
+                config.setConsoleExpanded(asBoolean(preview.get("consoleExpanded"), config.isConsoleExpanded()));
+                config.setConsoleDividerPosition(asDouble(preview.get("consoleDividerPosition"), config.getConsoleDividerPosition()));
+                config.setProjectTreeVisible(asBoolean(preview.get("projectTreeVisible"), config.isProjectTreeVisible()));
+                config.setProjectTreeDividerPosition(asDouble(preview.get("projectTreeDividerPosition"), config.getProjectTreeDividerPosition()));
             }
 
             Object recentObj = data.get("recentProjects");

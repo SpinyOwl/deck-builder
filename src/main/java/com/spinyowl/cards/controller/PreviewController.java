@@ -1,10 +1,13 @@
 package com.spinyowl.cards.controller;
 
+import com.spinyowl.cards.config.AppConfig;
 import com.spinyowl.cards.config.AppPaths;
+import com.spinyowl.cards.config.ConfigService;
 import com.spinyowl.cards.service.CardRenderer;
 import com.spinyowl.cards.service.ProjectManager;
 import com.spinyowl.cards.service.ProjectWatcher;
 import com.spinyowl.cards.ui.WindowStateHandler;
+import javafx.beans.value.ChangeListener;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -37,13 +40,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 public class PreviewController {
@@ -70,53 +73,33 @@ public class PreviewController {
     private volatile long lastLogModified = -1L;
     private volatile long lastLogSize = -1L;
     private volatile String lastDisplayedLog;
-    private volatile double storedDividerPos = 0.8; // remember previous divider position when collapsing console
-    private volatile boolean dividerStored = false;
-    private volatile double storedProjectTreeDividerPos = 0.25;
-    private volatile boolean projectDividerStored = false;
+    private final ConfigService configService = ConfigService.getInstance();
+    private final AppConfig appConfig = configService.getConfig();
+    private ChangeListener<Number> verticalDividerListener;
+    private ChangeListener<Number> horizontalDividerListener;
+    private SplitPane.Divider verticalDivider;
+    private SplitPane.Divider horizontalDivider;
 
     @FXML
     public void initialize() {
-        // Hook up collapse/expand behavior so the top pane regains space when console is collapsed
+        if (projectTreeToggle != null) {
+            projectTreeToggle.setSelected(appConfig.isProjectTreeVisible());
+        }
+        if (consolePane != null) {
+            consolePane.setExpanded(appConfig.isConsoleExpanded());
+        }
+
         if (consolePane != null) {
             consolePane.expandedProperty().addListener((obs, wasExpanded, isNowExpanded) -> {
-                if (mainVerticalSplit == null) {
-                    return;
-                }
-                if (isNowExpanded) {
-                    // restore resizable and divider position
-                    SplitPane.setResizableWithParent(consolePane, true);
-                    double target = dividerStored ? storedDividerPos : 0.8;
-                    Platform.runLater(() -> {
-                        mainVerticalSplit.setDividerPositions(clamp(target));
-                        updateVerticalDividerDraggable(true);
-                    });
-                } else {
-                    // store current divider position and collapse console area visually
-                    if (!mainVerticalSplit.getDividers().isEmpty()) {
-                        storedDividerPos = mainVerticalSplit.getDividers().get(0).getPosition();
-                        dividerStored = true;
-                    }
-                    SplitPane.setResizableWithParent(consolePane, false);
-                    Platform.runLater(() -> {
-                        mainVerticalSplit.setDividerPositions(1.0);
-                        updateVerticalDividerDraggable(false);
-                    });
-                }
+                updateConsoleExpandedState(isNowExpanded, true);
             });
 
-            // Apply initial state: if it's collapsed at startup, ensure divider is at 1.0 and console doesn't take space
-            if (mainVerticalSplit != null && !consolePane.isExpanded()) {
-                SplitPane.setResizableWithParent(consolePane, false);
-                Platform.runLater(() -> {
-                    mainVerticalSplit.setDividerPositions(1.0);
-                    updateVerticalDividerDraggable(false);
-                });
-            }
         }
-        if (projectTreeToggle != null) {
-            updateProjectTreeVisibility(projectTreeToggle.isSelected());
-        }
+
+        Platform.runLater(() -> {
+            updateConsoleExpandedState(consolePane != null && consolePane.isExpanded(), false);
+            updateProjectTreeVisibility(projectTreeToggle == null || projectTreeToggle.isSelected(), false);
+        });
     }
 
     private double clamp(double pos) {
@@ -130,29 +113,78 @@ public class PreviewController {
         if (projectTreeToggle == null) {
             return;
         }
-        updateProjectTreeVisibility(projectTreeToggle.isSelected());
+        updateProjectTreeVisibility(projectTreeToggle.isSelected(), true);
     }
 
-    private void updateProjectTreeVisibility(boolean show) {
+    private void updateProjectTreeVisibility(boolean show, boolean persist) {
         if (mainHorizontalSplit == null || projectTreeContainer == null) {
             return;
         }
+        SplitPane.setResizableWithParent(projectTreeContainer, false);
 
         ObservableList<Node> items = mainHorizontalSplit.getItems();
         boolean currentlyVisible = items.contains(projectTreeContainer);
 
-        if (show && !currentlyVisible) {
-            items.add(0, projectTreeContainer);
-            SplitPane.setResizableWithParent(projectTreeContainer, true);
-            double target = projectDividerStored ? storedProjectTreeDividerPos : 0.25;
-            Platform.runLater(() -> mainHorizontalSplit.setDividerPositions(clamp(target)));
-        } else if (!show && currentlyVisible) {
-            if (!mainHorizontalSplit.getDividers().isEmpty()) {
-                storedProjectTreeDividerPos = mainHorizontalSplit.getDividers().get(0).getPosition();
-                projectDividerStored = true;
+        if (show) {
+            if (!currentlyVisible) {
+                items.add(0, projectTreeContainer);
             }
-            SplitPane.setResizableWithParent(projectTreeContainer, false);
+            Platform.runLater(() -> {
+                mainHorizontalSplit.setDividerPositions(clamp(appConfig.getProjectTreeDividerPosition()));
+                ensureHorizontalDividerListener();
+            });
+        } else if (currentlyVisible) {
+            if (!mainHorizontalSplit.getDividers().isEmpty()) {
+                double position = clamp(mainHorizontalSplit.getDividers().get(0).getPosition());
+                appConfig.setProjectTreeDividerPosition(position);
+            }
             items.remove(projectTreeContainer);
+            removeHorizontalDividerListener();
+        }
+
+        appConfig.setProjectTreeVisible(show);
+        if (persist) {
+            configService.save();
+        }
+
+        if (show) {
+            ensureHorizontalDividerListener();
+        }
+    }
+
+    private void updateConsoleExpandedState(boolean expanded, boolean persist) {
+        if (consolePane == null || mainVerticalSplit == null) {
+            appConfig.setConsoleExpanded(expanded);
+            if (persist) {
+                configService.save();
+            }
+            return;
+        }
+        SplitPane.setResizableWithParent(consolePane, false);
+
+        if (!expanded && !mainVerticalSplit.getDividers().isEmpty()) {
+            double position = clamp(mainVerticalSplit.getDividers().get(0).getPosition());
+            appConfig.setConsoleDividerPosition(position);
+        }
+
+        appConfig.setConsoleExpanded(expanded);
+
+        if (expanded) {
+            Platform.runLater(() -> {
+                mainVerticalSplit.setDividerPositions(clamp(appConfig.getConsoleDividerPosition()));
+                updateVerticalDividerDraggable(true);
+                ensureVerticalDividerListener();
+            });
+        } else {
+            Platform.runLater(() -> {
+                mainVerticalSplit.setDividerPositions(1.0);
+                updateVerticalDividerDraggable(false);
+            });
+            removeVerticalDividerListener();
+        }
+
+        if (persist) {
+            configService.save();
         }
     }
 
@@ -169,6 +201,68 @@ public class PreviewController {
                 n.setMouseTransparent(!draggable);
             }
         });
+    }
+
+    private void ensureVerticalDividerListener() {
+        if (mainVerticalSplit == null || mainVerticalSplit.getDividers().isEmpty()) {
+            removeVerticalDividerListener();
+            return;
+        }
+
+        SplitPane.Divider divider = mainVerticalSplit.getDividers().get(0);
+        if (divider == verticalDivider && verticalDividerListener != null) {
+            return;
+        }
+
+        removeVerticalDividerListener();
+
+        verticalDivider = divider;
+        verticalDividerListener = (obs, oldVal, newVal) -> {
+            if (consolePane != null && consolePane.isExpanded()) {
+                double position = clamp(newVal.doubleValue());
+                appConfig.setConsoleDividerPosition(position);
+            }
+        };
+        divider.positionProperty().addListener(verticalDividerListener);
+    }
+
+    private void removeVerticalDividerListener() {
+        if (verticalDivider != null && verticalDividerListener != null) {
+            verticalDivider.positionProperty().removeListener(verticalDividerListener);
+        }
+        verticalDivider = null;
+        verticalDividerListener = null;
+    }
+
+    private void ensureHorizontalDividerListener() {
+        if (mainHorizontalSplit == null || mainHorizontalSplit.getDividers().isEmpty() || !appConfig.isProjectTreeVisible()) {
+            removeHorizontalDividerListener();
+            return;
+        }
+
+        SplitPane.Divider divider = mainHorizontalSplit.getDividers().get(0);
+        if (divider == horizontalDivider && horizontalDividerListener != null) {
+            return;
+        }
+
+        removeHorizontalDividerListener();
+
+        horizontalDivider = divider;
+        horizontalDividerListener = (obs, oldVal, newVal) -> {
+            if (projectTreeToggle == null || projectTreeToggle.isSelected()) {
+                double position = clamp(newVal.doubleValue());
+                appConfig.setProjectTreeDividerPosition(position);
+            }
+        };
+        divider.positionProperty().addListener(horizontalDividerListener);
+    }
+
+    private void removeHorizontalDividerListener() {
+        if (horizontalDivider != null && horizontalDividerListener != null) {
+            horizontalDivider.positionProperty().removeListener(horizontalDividerListener);
+        }
+        horizontalDivider = null;
+        horizontalDividerListener = null;
     }
 
     public void setProject(ProjectManager pm) {
