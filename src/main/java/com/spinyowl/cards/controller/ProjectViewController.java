@@ -17,6 +17,7 @@ import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -38,7 +39,7 @@ public class ProjectViewController {
     private final TreeView<Path> projectTree;
     private final StackPane projectTreeContainer;
     private final ToggleButton projectTreeToggle;
-    private final BorderPane previewPane;
+    private final Pane previewPane;
     private final SplitPane mainHorizontalSplit;
     private final Runnable expandConsole;
 
@@ -52,7 +53,7 @@ public class ProjectViewController {
     public ProjectViewController(TreeView<Path> projectTree,
                                  StackPane projectTreeContainer,
                                  ToggleButton projectTreeToggle,
-                                 BorderPane previewPane,
+                                 Pane previewPane,
                                  SplitPane mainHorizontalSplit,
                                  ConfigService configService,
                                  AppConfig appConfig,

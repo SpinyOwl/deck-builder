@@ -41,7 +41,7 @@ public class DeckBuilderController {
     @FXML private SplitPane mainHorizontalSplit;
     @FXML private StackPane projectTreeContainer;
     @FXML private ToggleButton projectTreeToggle;
-    @FXML private BorderPane previewPane;
+    @FXML private StackPane previewPane;
     @FXML private BorderPane previewContainer;
     @FXML private ToggleButton previewToggle;
     @FXML private ToggleButton zoomFitToggle;

@@ -7,6 +7,8 @@ import javafx.beans.value.ChangeListener;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
 import javafx.scene.web.WebView;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -22,7 +24,7 @@ public class PreviewController {
     private final ConfigService configService;
     private final AppConfig appConfig;
     private final WebView webView;
-    private final BorderPane previewPane;
+    private final Pane previewPane;
     private final BorderPane previewContainer;
     private final ToggleButton previewToggle;
     private final ToggleButton zoomFitToggle;
@@ -41,7 +43,7 @@ public class PreviewController {
     private ProjectViewController projectViewController;
 
     public PreviewController(WebView webView,
-                             BorderPane previewPane,
+                             Pane previewPane,
                              BorderPane previewContainer,
                              ToggleButton previewToggle,
                              ToggleButton zoomFitToggle,
