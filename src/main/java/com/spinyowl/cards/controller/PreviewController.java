@@ -32,6 +32,7 @@ import javafx.stage.Stage;
 import lombok.extern.slf4j.Slf4j;
 
 import javafx.scene.Node;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
 
 import java.awt.Desktop;
@@ -64,6 +65,8 @@ public class PreviewController {
     @FXML private SplitPane mainHorizontalSplit;
     @FXML private StackPane projectTreeContainer;
     @FXML private ToggleButton projectTreeToggle;
+    @FXML private BorderPane previewPane;
+    @FXML private ToggleButton previewToggle;
 
     private ProjectManager projectManager;
     private CardRenderer renderer;
@@ -78,13 +81,18 @@ public class PreviewController {
     private final AppConfig appConfig = configService.getConfig();
     private ChangeListener<Number> verticalDividerListener;
     private ChangeListener<Number> horizontalDividerListener;
+    private ChangeListener<Number> previewDividerListener;
     private SplitPane.Divider verticalDivider;
     private SplitPane.Divider horizontalDivider;
+    private SplitPane.Divider previewDivider;
 
     @FXML
     public void initialize() {
         if (projectTreeToggle != null) {
             projectTreeToggle.setSelected(appConfig.isProjectTreeVisible());
+        }
+        if (previewToggle != null) {
+            previewToggle.setSelected(appConfig.isPreviewVisible());
         }
         if (consolePane != null) {
             consolePane.setExpanded(appConfig.isConsoleExpanded());
@@ -100,6 +108,7 @@ public class PreviewController {
         Platform.runLater(() -> {
             updateConsoleExpandedState(consolePane != null && consolePane.isExpanded(), false);
             updateProjectTreeVisibility(projectTreeToggle == null || projectTreeToggle.isSelected(), false);
+            updatePreviewVisibility(previewToggle == null || previewToggle.isSelected(), false);
         });
     }
 
@@ -117,6 +126,14 @@ public class PreviewController {
         updateProjectTreeVisibility(projectTreeToggle.isSelected(), true);
     }
 
+    @FXML
+    private void onTogglePreview() {
+        if (previewToggle == null) {
+            return;
+        }
+        updatePreviewVisibility(previewToggle.isSelected(), true);
+    }
+
     private void updateProjectTreeVisibility(boolean show, boolean persist) {
         if (mainHorizontalSplit == null || projectTreeContainer == null) {
             return;
@@ -130,9 +147,11 @@ public class PreviewController {
             if (!currentlyVisible) {
                 items.add(0, projectTreeContainer);
             }
+            appConfig.setProjectTreeVisible(true);
             Platform.runLater(() -> {
-                mainHorizontalSplit.setDividerPositions(clamp(appConfig.getProjectTreeDividerPosition()));
+                applyStoredDividerPositions();
                 ensureHorizontalDividerListener();
+                ensurePreviewDividerListener();
             });
         } else if (currentlyVisible) {
             if (!mainHorizontalSplit.getDividers().isEmpty()) {
@@ -141,16 +160,131 @@ public class PreviewController {
             }
             items.remove(projectTreeContainer);
             removeHorizontalDividerListener();
+            appConfig.setProjectTreeVisible(false);
+            Platform.runLater(() -> {
+                applyStoredDividerPositions();
+                ensurePreviewDividerListener();
+            });
+        } else {
+            appConfig.setProjectTreeVisible(false);
         }
-
-        appConfig.setProjectTreeVisible(show);
         if (persist) {
             configService.save();
         }
+    }
+
+    private void updatePreviewVisibility(boolean show, boolean persist) {
+        if (mainHorizontalSplit == null || previewPane == null) {
+            return;
+        }
+        SplitPane.setResizableWithParent(previewPane, false);
+
+        ObservableList<Node> items = mainHorizontalSplit.getItems();
+        boolean currentlyVisible = items.contains(previewPane);
 
         if (show) {
-            ensureHorizontalDividerListener();
+            if (!currentlyVisible) {
+                items.add(previewPane);
+            }
+            appConfig.setPreviewVisible(true);
+            Platform.runLater(() -> {
+                applyStoredDividerPositions();
+                ensurePreviewDividerListener();
+                ensureHorizontalDividerListener();
+            });
+        } else if (currentlyVisible) {
+            ObservableList<SplitPane.Divider> dividers = mainHorizontalSplit.getDividers();
+            if (!dividers.isEmpty()) {
+                SplitPane.Divider divider = dividers.get(dividers.size() - 1);
+                double position = clamp(divider.getPosition());
+                appConfig.setPreviewDividerPosition(position);
+            }
+            items.remove(previewPane);
+            removePreviewDividerListener();
+            appConfig.setPreviewVisible(false);
+            Platform.runLater(() -> {
+                applyStoredDividerPositions();
+                ensureHorizontalDividerListener();
+            });
+        } else {
+            appConfig.setPreviewVisible(false);
         }
+
+        if (persist) {
+            configService.save();
+        }
+    }
+
+    private void applyStoredDividerPositions() {
+        if (mainHorizontalSplit == null) {
+            return;
+        }
+
+        ObservableList<Node> items = mainHorizontalSplit.getItems();
+        int itemCount = items.size();
+        if (itemCount <= 1) {
+            return;
+        }
+
+        boolean treeVisible = items.contains(projectTreeContainer);
+        boolean previewVisible = items.contains(previewPane);
+
+        if (treeVisible && previewVisible && itemCount >= 3) {
+            double treePosition = clamp(appConfig.getProjectTreeDividerPosition());
+            double previewPosition = clamp(appConfig.getPreviewDividerPosition());
+            double minGap = 0.05;
+            if (previewPosition <= treePosition + minGap) {
+                previewPosition = clamp(treePosition + minGap);
+            }
+            mainHorizontalSplit.setDividerPositions(treePosition, previewPosition);
+        } else if (treeVisible) {
+            mainHorizontalSplit.setDividerPositions(clamp(appConfig.getProjectTreeDividerPosition()));
+        } else if (previewVisible) {
+            mainHorizontalSplit.setDividerPositions(clamp(appConfig.getPreviewDividerPosition()));
+        }
+    }
+
+    private void ensurePreviewDividerListener() {
+        if (mainHorizontalSplit == null || previewPane == null) {
+            removePreviewDividerListener();
+            return;
+        }
+
+        ObservableList<Node> items = mainHorizontalSplit.getItems();
+        if (!items.contains(previewPane)) {
+            removePreviewDividerListener();
+            return;
+        }
+
+        ObservableList<SplitPane.Divider> dividers = mainHorizontalSplit.getDividers();
+        if (dividers.isEmpty()) {
+            removePreviewDividerListener();
+            return;
+        }
+
+        SplitPane.Divider divider = dividers.get(dividers.size() - 1);
+        if (divider == previewDivider && previewDividerListener != null) {
+            return;
+        }
+
+        removePreviewDividerListener();
+
+        previewDivider = divider;
+        previewDividerListener = (obs, oldVal, newVal) -> {
+            if (previewToggle == null || previewToggle.isSelected()) {
+                double position = clamp(newVal.doubleValue());
+                appConfig.setPreviewDividerPosition(position);
+            }
+        };
+        divider.positionProperty().addListener(previewDividerListener);
+    }
+
+    private void removePreviewDividerListener() {
+        if (previewDivider != null && previewDividerListener != null) {
+            previewDivider.positionProperty().removeListener(previewDividerListener);
+        }
+        previewDivider = null;
+        previewDividerListener = null;
     }
 
     private void updateConsoleExpandedState(boolean expanded, boolean persist) {

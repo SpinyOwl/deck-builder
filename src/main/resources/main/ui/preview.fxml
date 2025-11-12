@@ -41,14 +41,35 @@
                         </ToolBar>
                     </left>
                     <center>
-                        <SplitPane fx:id="mainHorizontalSplit" dividerPositions="0.25">
+                        <SplitPane fx:id="mainHorizontalSplit" dividerPositions="0.25,0.75">
                             <items>
                                 <StackPane fx:id="projectTreeContainer">
                                     <children>
                                         <TreeView fx:id="projectTree" minWidth="50" prefWidth="260"/>
                                     </children>
                                 </StackPane>
-                                <WebView fx:id="webView"/>
+                                <StackPane fx:id="middleContentContainer" />
+                                <BorderPane fx:id="previewPane">
+                                    <center>
+                                        <StackPane fx:id="previewContainer">
+                                            <children>
+                                                <WebView fx:id="webView"/>
+                                            </children>
+                                        </StackPane>
+                                    </center>
+                                    <right>
+                                        <ToolBar orientation="VERTICAL" prefWidth="30">
+                                            <items>
+                                                <ToggleButton fx:id="previewToggle" text="👁" selected="true"
+                                                              onAction="#onTogglePreview" prefWidth="30">
+                                                    <tooltip>
+                                                        <Tooltip text="Toggle preview"/>
+                                                    </tooltip>
+                                                </ToggleButton>
+                                            </items>
+                                        </ToolBar>
+                                    </right>
+                                </BorderPane>
                             </items>
                         </SplitPane>
                     </center>

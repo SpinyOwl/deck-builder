@@ -137,6 +137,8 @@ public class ConfigService {
         preview.put("consoleDividerPosition", config.getConsoleDividerPosition());
         preview.put("projectTreeVisible", config.isProjectTreeVisible());
         preview.put("projectTreeDividerPosition", config.getProjectTreeDividerPosition());
+        preview.put("previewVisible", config.isPreviewVisible());
+        preview.put("previewDividerPosition", config.getPreviewDividerPosition());
         root.put("preview", preview);
 
         root.put("recentProjects", new ArrayList<>(config.getRecentProjects()));
@@ -176,6 +178,8 @@ public class ConfigService {
                 config.setConsoleDividerPosition(asDouble(preview.get("consoleDividerPosition"), config.getConsoleDividerPosition()));
                 config.setProjectTreeVisible(asBoolean(preview.get("projectTreeVisible"), config.isProjectTreeVisible()));
                 config.setProjectTreeDividerPosition(asDouble(preview.get("projectTreeDividerPosition"), config.getProjectTreeDividerPosition()));
+                config.setPreviewVisible(asBoolean(preview.get("previewVisible"), config.isPreviewVisible()));
+                config.setPreviewDividerPosition(asDouble(preview.get("previewDividerPosition"), config.getPreviewDividerPosition()));
             }
 
             Object recentObj = data.get("recentProjects");

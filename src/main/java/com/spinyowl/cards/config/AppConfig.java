@@ -42,6 +42,12 @@ public class AppConfig {
     @Setter
     @Getter
     private double projectTreeDividerPosition = 0.25;
+    @Setter
+    @Getter
+    private boolean previewVisible = true;
+    @Setter
+    @Getter
+    private double previewDividerPosition = 0.75;
 
     public List<String> getRecentProjects() {
         return Collections.unmodifiableList(recentProjects);
