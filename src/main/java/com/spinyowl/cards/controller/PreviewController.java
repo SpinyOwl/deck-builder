@@ -24,6 +24,8 @@ import javafx.scene.web.WebView;
 import javafx.stage.Stage;
 import lombok.extern.slf4j.Slf4j;
 
+import javafx.scene.Node;
+
 import java.awt.Desktop;
 import java.nio.file.FileAlreadyExistsException;
 import java.io.IOException;
@@ -76,7 +78,10 @@ public class PreviewController {
                     // restore resizable and divider position
                     SplitPane.setResizableWithParent(consolePane, true);
                     double target = dividerStored ? storedDividerPos : 0.8;
-                    Platform.runLater(() -> mainVerticalSplit.setDividerPositions(clamp(target)));
+                    Platform.runLater(() -> {
+                        mainVerticalSplit.setDividerPositions(clamp(target));
+                        updateVerticalDividerDraggable(true);
+                    });
                 } else {
                     // store current divider position and collapse console area visually
                     if (!mainVerticalSplit.getDividers().isEmpty()) {
@@ -84,14 +89,20 @@ public class PreviewController {
                         dividerStored = true;
                     }
                     SplitPane.setResizableWithParent(consolePane, false);
-                    Platform.runLater(() -> mainVerticalSplit.setDividerPositions(1.0));
+                    Platform.runLater(() -> {
+                        mainVerticalSplit.setDividerPositions(1.0);
+                        updateVerticalDividerDraggable(false);
+                    });
                 }
             });
 
             // Apply initial state: if it's collapsed at startup, ensure divider is at 1.0 and console doesn't take space
             if (mainVerticalSplit != null && !consolePane.isExpanded()) {
                 SplitPane.setResizableWithParent(consolePane, false);
-                Platform.runLater(() -> mainVerticalSplit.setDividerPositions(1.0));
+                Platform.runLater(() -> {
+                    mainVerticalSplit.setDividerPositions(1.0);
+                    updateVerticalDividerDraggable(false);
+                });
             }
         }
     }
@@ -100,6 +111,21 @@ public class PreviewController {
         if (pos < 0.0) return 0.0;
         if (pos > 1.0) return 1.0;
         return pos;
+    }
+
+    /**
+     * Enables or disables user dragging on the divider of the vertical SplitPane that hosts the console.
+     * When the console is collapsed, the divider should not be draggable to avoid accidental resizing.
+     */
+    private void updateVerticalDividerDraggable(boolean draggable) {
+        if (mainVerticalSplit == null) return;
+        // run later to ensure the skin and divider nodes are present
+        Platform.runLater(() -> {
+            for (Node n : mainVerticalSplit.lookupAll(".split-pane-divider")) {
+                // Disable mouse interaction on the divider when not draggable
+                n.setMouseTransparent(!draggable);
+            }
+        });
     }
 
     public void setProject(ProjectManager pm) {
