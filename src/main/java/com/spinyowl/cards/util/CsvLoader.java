@@ -12,10 +12,11 @@ public class CsvLoader {
     public static List<Card> loadCards(Path csvPath) {
         List<Card> list = new ArrayList<>();
         try (Reader r = new FileReader(csvPath.toFile())) {
-            for (CSVRecord rec : CSVFormat.DEFAULT
-                    .withFirstRecordAsHeader()
+            for (CSVRecord rec : CSVFormat.DEFAULT.builder()
+                    .setHeader().setSkipHeaderRecord(true).get()
                     .parse(r)) {
                 Card c = new Card();
+                c.setId(rec.isMapped("id") ? rec.get("id") : null);
                 c.setName(rec.get("name"));
                 c.setDescription(rec.get("description"));
                 c.setImage(rec.get("image"));

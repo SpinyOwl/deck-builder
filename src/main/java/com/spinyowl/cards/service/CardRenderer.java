@@ -2,6 +2,7 @@ package com.spinyowl.cards.service;
 
 import com.spinyowl.cards.model.Card;
 import com.spinyowl.cards.util.CsvLoader;
+import com.spinyowl.cards.util.PebbleCardTranslationFunction;
 import com.spinyowl.cards.util.PebbleTranslationFunction;
 import com.spinyowl.cards.util.TranslationService;
 import io.pebbletemplates.pebble.PebbleEngine;
@@ -22,6 +23,7 @@ public class CardRenderer {
     private List<Card> cards;
     private TranslationService translations;
     private PebbleTranslationFunction translationFunction;
+    private PebbleCardTranslationFunction cardTranslationFunction;
 
     public CardRenderer(ProjectManager pm) {
         this.projectManager = pm;
@@ -35,6 +37,8 @@ public class CardRenderer {
             cards = CsvLoader.loadCards(csv);
             translations = new TranslationService(projectManager.resolve("i18n"));
             translationFunction = new PebbleTranslationFunction(translations, projectManager::getDefaultLanguage);
+            TranslationService cardTranslations = new TranslationService(projectManager.resolve("i18n/cards"));
+            cardTranslationFunction = new PebbleCardTranslationFunction(cardTranslations, projectManager::getDefaultLanguage);
 
             FileLoader loader = new FileLoader();
             loader.setPrefix(projectManager.resolve("templates").toString());
@@ -43,7 +47,10 @@ public class CardRenderer {
                     .extension(new AbstractExtension() {
                         @Override
                         public Map<String, Function> getFunctions() {
-                            return Collections.singletonMap("t", translationFunction);
+                            Map<String, Function> functions = new HashMap<>();
+                            functions.put("t", translationFunction);
+                            functions.put("card_t", cardTranslationFunction);
+                            return functions;
                         }
                     })
                     .build();
@@ -60,7 +67,7 @@ public class CardRenderer {
             return "<p>No such card index</p>";
         }
 
-        if (engine == null || translationFunction == null) {
+        if (engine == null || translationFunction == null || cardTranslationFunction == null) {
             log.error("Renderer not initialized correctly");
             return "<p>Error rendering card.</p>";
         }
@@ -78,10 +85,14 @@ public class CardRenderer {
             PebbleTemplate template = engine.getTemplate(tpl);
             StringWriter sw = new StringWriter();
             translationFunction.setLanguage(lang);
+            cardTranslationFunction.setLanguage(lang);
+            cardTranslationFunction.setCardContext(card.getId(), ctx);
             try {
                 template.evaluate(sw, ctx);
             } finally {
                 translationFunction.clearLanguage();
+                cardTranslationFunction.clearLanguage();
+                cardTranslationFunction.clearCardContext();
             }
 
             log.debug("Rendered card {} with template {}", index, tpl);

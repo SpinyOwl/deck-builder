@@ -15,6 +15,7 @@ public class ProjectCreator {
         Files.createDirectories(projectDir);
         Files.createDirectories(projectDir.resolve("templates"));
         Files.createDirectories(projectDir.resolve("i18n"));
+        Files.createDirectories(projectDir.resolve("i18n/cards"));
 
         log.info("Creating new project at {}", projectDir);
 
@@ -32,6 +33,9 @@ public class ProjectCreator {
 
         // i18n/en.yml
         copyResource("default_project/i18n/en.yml", projectDir.resolve("i18n/en.yml"));
+
+        // i18n/cards/en.yml
+        copyResource("default_project/i18n/cards/en.yml", projectDir.resolve("i18n/cards/en.yml"));
 
         log.info("Default project created successfully.");
     }
