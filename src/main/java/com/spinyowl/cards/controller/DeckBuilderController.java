@@ -29,7 +29,7 @@ import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
-public class DeckEditorController {
+public class DeckBuilderController {
 
     @FXML private WebView webView;
     @FXML private Spinner<Integer> indexSpinner;
