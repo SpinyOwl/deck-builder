@@ -221,7 +221,7 @@ public class PreviewController {
     }
 
     private void fitPreviewToContainer() {
-        if (webView == null || previewContainer == null || !isFitToContainerActive()) {
+        if (webView == null || !isFitToContainerActive()) {
             return;
         }
 
@@ -229,8 +229,8 @@ public class PreviewController {
             if (!isFitToContainerActive()) {
                 return;
             }
-            double containerWidth = previewContainer.getWidth();
-            double containerHeight = previewContainer.getHeight();
+            double containerWidth = webView.getWidth();
+            double containerHeight = webView.getHeight();
             if (containerWidth <= 0 || containerHeight <= 0) {
                 return;
             }

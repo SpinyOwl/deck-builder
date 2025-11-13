@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?import javafx.geometry.Insets?>
-<?import javafx.scene.web.WebView?>
-<?import javafx.scene.layout.*?>
-<?import javafx.scene.control.*?>
 
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.web.WebView?>
 <BorderPane xmlns:fx="http://javafx.com/fxml"
             fx:controller="com.spinyowl.cards.controller.DeckBuilderController">
     <top>
@@ -47,7 +47,11 @@
                         <StackPane fx:id="previewPane">
                             <BorderPane fx:id="previewContainer">
                                 <center>
-                                    <WebView fx:id="webView"/>
+                                    <BorderPane style="-fx-padding: 5px;">
+                                        <center>
+                                            <WebView fx:id="webView"/>
+                                        </center>
+                                    </BorderPane>
                                 </center>
                                 <bottom>
                                     <ToolBar StackPane.alignment="BOTTOM_CENTER"
