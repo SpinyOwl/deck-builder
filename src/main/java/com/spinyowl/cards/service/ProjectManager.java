@@ -2,6 +2,7 @@ package com.spinyowl.cards.service;
 
 import com.spinyowl.cards.model.Card;
 import com.spinyowl.cards.util.CsvLoader;
+import com.spinyowl.cards.util.FileUtils;
 import com.spinyowl.cards.util.TranslationService;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -10,7 +11,6 @@ import org.yaml.snakeyaml.Yaml;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -33,8 +33,11 @@ public class ProjectManager {
     private static final Pattern NUMERIC_PATTERN = Pattern.compile("^(\\d+(?:\\.\\d+)?)$");
 
     private Map<String, Object> config = Collections.emptyMap();
+    @Getter
     private List<Card> cards = Collections.emptyList();
+    @Getter
     private TranslationService translations;
+    @Getter
     private TranslationService cardTranslations;
     private final List<ReloadListener> reloadListeners = new CopyOnWriteArrayList<>();
 
@@ -108,18 +111,6 @@ public class ProjectManager {
         return Collections.unmodifiableMap(view);
     }
 
-    public List<Card> getCards() {
-        return cards;
-    }
-
-    public TranslationService getTranslations() {
-        return translations;
-    }
-
-    public TranslationService getCardTranslations() {
-        return cardTranslations;
-    }
-
     public Path getTemplatesDirectory() {
         return resolve("templates");
     }
@@ -172,12 +163,9 @@ public class ProjectManager {
     private void loadConfiguration() throws IOException {
         Path dir = requireProjectDir();
 
-        Path configFile = dir.resolve("project.yml");
-        if (!Files.exists(configFile)) {
-            throw new IOException("project.yml not found in " + dir);
-        }
+        Path configFile = FileUtils.requireFile(dir.resolve("project.yml"), "Project configuration file");
 
-        try (InputStream in = Files.newInputStream(configFile)) {
+        try (InputStream in = FileUtils.newInputStream(configFile, "Project configuration file")) {
             Object loaded = new Yaml().load(in);
             if (loaded instanceof Map<?, ?> map) {
                 Map<String, Object> cleaned = new LinkedHashMap<>();

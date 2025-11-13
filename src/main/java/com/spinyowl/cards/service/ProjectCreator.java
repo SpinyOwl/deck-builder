@@ -1,5 +1,6 @@
 package com.spinyowl.cards.service;
 
+import com.spinyowl.cards.util.FileUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.yaml.snakeyaml.Yaml;
 
@@ -43,11 +44,7 @@ public class ProjectCreator {
     @SuppressWarnings("unchecked")
     private static Map<String, Object> loadProjectConfig() throws IOException {
         Yaml yaml = new Yaml();
-        try (InputStream in = ProjectCreator.class.getClassLoader()
-                .getResourceAsStream("default_project/project.yml")) {
-            if (in == null) {
-                throw new IOException("Default project configuration template not found");
-            }
+        try (InputStream in = FileUtils.openResource(ProjectCreator.class, "default_project/project.yml")) {
             Object loaded = yaml.load(in);
             if (!(loaded instanceof Map<?, ?> map)) {
                 throw new IOException("Invalid default project configuration template");
@@ -57,10 +54,7 @@ public class ProjectCreator {
     }
 
     private static void copyResource(String resourcePath, Path target) throws IOException {
-        try (InputStream in = ProjectCreator.class.getClassLoader().getResourceAsStream(resourcePath)) {
-            if (in == null) {
-                throw new IOException("Resource not found: " + resourcePath);
-            }
+        try (InputStream in = FileUtils.openResource(ProjectCreator.class, resourcePath)) {
             Files.createDirectories(target.getParent());
             Files.copy(in, target, StandardCopyOption.REPLACE_EXISTING);
         }

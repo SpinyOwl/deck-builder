@@ -3,6 +3,7 @@ package com.spinyowl.cards.controller;
 import com.spinyowl.cards.config.AppConfig;
 import com.spinyowl.cards.config.AppPaths;
 import com.spinyowl.cards.config.ConfigService;
+import com.spinyowl.cards.util.FileUtils;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.scene.Node;
@@ -184,7 +185,7 @@ public class ConsoleLogController {
         }
 
         Path logFile = latestLogFile;
-        if (logFile == null || !Files.exists(logFile)) {
+        if (!FileUtils.isReadableFile(logFile)) {
             if (lastDisplayedLog != null && !lastDisplayedLog.isEmpty()) {
                 lastDisplayedLog = "";
                 Platform.runLater(() -> {

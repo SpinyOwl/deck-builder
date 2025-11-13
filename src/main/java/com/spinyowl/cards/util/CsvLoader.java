@@ -26,7 +26,7 @@ public final class CsvLoader {
             .get();
 
     public static List<Card> loadCards(Path csvPath) {
-        if (csvPath == null || !Files.exists(csvPath)) {
+        if (!FileUtils.isReadableFile(csvPath)) {
             return Collections.emptyList();
         }
 

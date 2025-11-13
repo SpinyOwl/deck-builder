@@ -1,5 +1,6 @@
 package com.spinyowl.cards.config;
 
+import com.spinyowl.cards.util.FileUtils;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
@@ -151,7 +152,7 @@ public class ConfigService {
     }
 
     private void load() {
-        if (!Files.exists(CONFIG_FILE)) {
+        if (!FileUtils.isReadableFile(CONFIG_FILE)) {
             return;
         }
 

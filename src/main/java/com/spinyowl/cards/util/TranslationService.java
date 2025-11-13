@@ -4,7 +4,7 @@ import org.yaml.snakeyaml.Yaml;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.*;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -58,11 +58,11 @@ public class TranslationService {
         }
 
         Path file = dir.resolve(lang + ".yml");
-        if (!Files.exists(file)) {
+        if (!FileUtils.isReadableFile(file)) {
             return Collections.emptyMap();
         }
 
-        try (InputStream in = Files.newInputStream(file)) {
+        try (InputStream in = FileUtils.newInputStream(file, "Translation file")) {
             Object loaded = yaml.load(in);
             if (loaded instanceof Map<?, ?> map) {
                 return deepCopy(map);
