@@ -239,26 +239,18 @@ public class PreviewController {
                 Object widthObj = webView.getEngine().executeScript(
                         "(function() {\n" +
                                 "  const body = document.body;\n" +
-                                "  if (!body) {\n" +
-                                "    return null;\n" +
-                                "  }\n" +
+                                "  if (!body) return null;\n" +
                                 "  const rect = body.getBoundingClientRect();\n" +
-                                "  if (!rect) {\n" +
-                                "    return null;\n" +
-                                "  }\n" +
+                                "  if (!rect) return null;\n" +
                                 "  return rect.width;\n" +
                                 "})()"
                 );
                 Object heightObj = webView.getEngine().executeScript(
                         "(function() {\n" +
                                 "  const body = document.body;\n" +
-                                "  if (!body) {\n" +
-                                "    return null;\n" +
-                                "  }\n" +
+                                "  if (!body) return null;\n" +
                                 "  const rect = body.getBoundingClientRect();\n" +
-                                "  if (!rect) {\n" +
-                                "    return null;\n" +
-                                "  }\n" +
+                                "  if (!rect) return null;\n" +
                                 "  return rect.height;\n" +
                                 "})()"
                 );

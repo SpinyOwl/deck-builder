@@ -9,11 +9,6 @@
     <top>
         <ToolBar>
             <Button text="Reload" onAction="#onReload"/>
-            <Label text="Language:"/>
-            <ComboBox fx:id="langBox" prefWidth="100"/>
-            <Label text="Index:"/>
-            <Spinner fx:id="indexSpinner" prefWidth="80" editable="true"/>
-            <Button text="Show" onAction="#onShow"/>
             <Region HBox.hgrow="ALWAYS"/>
             <Button text="&#x2715;" onAction="#onCloseProject" focusTraversable="false"
                     style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-focus-color: transparent;">
@@ -60,6 +55,12 @@
                                         <StackPane.margin>
                                             <Insets top="10" right="10"/>
                                         </StackPane.margin>
+                                        <Label text="Language:"/>
+                                        <ComboBox fx:id="langBox" prefWidth="100"/>
+                                        <Label text="Index:"/>
+                                        <Spinner fx:id="indexSpinner" prefWidth="80" editable="true"/>
+                                        <Button text="Show" onAction="#onShow"/>
+                                        <Separator orientation="VERTICAL"/>
                                         <Button text="-" onAction="#onZoomOut" focusTraversable="false">
                                             <tooltip>
                                                 <Tooltip text="Zoom out"/>
