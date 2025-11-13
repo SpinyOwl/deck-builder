@@ -1,6 +1,7 @@
 name: Default Project
 default_language: en
 default_template: default.html
+html_wrapper_template: card-wrapper.html
 cards_file: cards.csv
 card:
   width: 2.5in

@@ -26,6 +26,8 @@ public class ProjectManager {
     @Getter
     private Path projectDir;
 
+    public static final String DEFAULT_HTML_WRAPPER_TEMPLATE = "card-wrapper.html";
+
     private static final String DEFAULT_CARD_WIDTH = "2.5in";
     private static final String DEFAULT_CARD_HEIGHT = "3.5in";
     private static final Pattern DIMENSION_PATTERN =
@@ -81,6 +83,14 @@ public class ProjectManager {
 
     public String getDefaultLanguage() {
         return (String) config.getOrDefault("default_language", "en");
+    }
+
+    public String getHtmlWrapperTemplate() {
+        Object configured = config.get("html_wrapper_template");
+        if (configured instanceof String template && !template.isBlank()) {
+            return template;
+        }
+        return DEFAULT_HTML_WRAPPER_TEMPLATE;
     }
 
     public Path resolve(String rel) {

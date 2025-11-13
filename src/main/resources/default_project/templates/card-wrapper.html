@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="{{ lang | default(project.default_language) | default('en') }}">
+<head>
+    <meta charset="UTF-8" />
+    <title>{{ card.name | default(project.name) | default('Card Preview') }}</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: {{ project.card.background | default('#f0f0f0') }};
+        }
+
+        .card-preview {
+            display: inline-block;
+            width: {{ card_width | default(project.card.width) | default('auto') }};
+            height: {{ card_height | default(project.card.height) | default('auto') }};
+        }
+
+        .card-preview > * {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+<div class="card-preview">
+{{ content | raw }}
+</div>
+</body>
+</html>

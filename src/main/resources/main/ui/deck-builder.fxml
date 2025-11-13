@@ -1,85 +1,78 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
+<?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<?import javafx.scene.web.WebView?>
-<BorderPane xmlns:fx="http://javafx.com/fxml"
-            fx:controller="com.spinyowl.cards.controller.DeckBuilderController">
+<?import javafx.scene.web.*?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml/1" xmlns="http://javafx.com/javafx/17.0.12" fx:controller="com.spinyowl.cards.controller.DeckBuilderController">
     <top>
         <ToolBar>
-            <Button text="Reload" onAction="#onReload"/>
-            <Region HBox.hgrow="ALWAYS"/>
-            <Button text="&#x2715;" onAction="#onCloseProject" focusTraversable="false"
-                    style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-focus-color: transparent;">
+            <Button onAction="#onReload" text="Reload" />
+            <Region HBox.hgrow="ALWAYS" />
+            <Button focusTraversable="false" onAction="#onCloseProject" style="-fx-background-color: transparent; -fx-border-color: transparent; -fx-focus-color: transparent;" text="✕">
                 <tooltip>
-                    <Tooltip text="Close Project"/>
+                    <Tooltip text="Close Project" />
                 </tooltip>
             </Button>
         </ToolBar>
     </top>
     <center>
         <!-- Make console resizable by placing it in a vertical SplitPane with the main content -->
-        <SplitPane fx:id="mainVerticalSplit" orientation="VERTICAL" dividerPositions="0.8">
+        <SplitPane fx:id="mainVerticalSplit" dividerPositions="0.8" orientation="VERTICAL">
             <!-- Top area: host toolbar and project preview in a BorderPane -->
             <BorderPane>
                 <left>
-                    <ToolBar orientation="VERTICAL" prefWidth="30">
-                        <ToggleButton fx:id="projectTreeToggle" text="📁" selected="true"
-                                      onAction="#onToggleProjectTree" prefWidth="30">
+                    <ToolBar orientation="VERTICAL" prefHeight="547.0" prefWidth="15.0">
+                        <ToggleButton fx:id="projectTreeToggle" onAction="#onToggleProjectTree" prefHeight="25.0" prefWidth="30.0" selected="true" text="📁">
                             <tooltip>
-                                <Tooltip text="Toggle project tree"/>
+                                <Tooltip text="Toggle project tree" />
                             </tooltip>
                         </ToggleButton>
                     </ToolBar>
                 </left>
                 <center>
-                    <SplitPane fx:id="mainHorizontalSplit" dividerPositions="0.25,0.75">
+                    <SplitPane fx:id="mainHorizontalSplit" dividerPositions="0.25, 0.6501831501831502">
                         <StackPane fx:id="projectTreeContainer">
-                            <TreeView fx:id="projectTree" minWidth="50" prefWidth="260"/>
+                            <TreeView fx:id="projectTree" minWidth="50" prefWidth="260" />
                         </StackPane>
-                        <StackPane fx:id="middleContentContainer"/>
+                        <StackPane fx:id="middleContentContainer" />
                         <StackPane fx:id="previewPane">
                             <BorderPane fx:id="previewContainer">
                                 <center>
-                                    <BorderPane style="-fx-padding: 5px;">
+                                    <BorderPane style="-fx-padding: 10px;">
                                         <center>
-                                            <WebView fx:id="webView"/>
+                                            <WebView fx:id="webView" />
                                         </center>
                                     </BorderPane>
                                 </center>
                                 <bottom>
-                                    <ToolBar StackPane.alignment="BOTTOM_CENTER"
-                                             styleClass="preview-toolbar"
-                                             focusTraversable="false">
+                                    <ToolBar focusTraversable="false" styleClass="preview-toolbar" StackPane.alignment="BOTTOM_CENTER">
                                         <StackPane.margin>
-                                            <Insets top="10" right="10"/>
+                                            <Insets right="10" top="10" />
                                         </StackPane.margin>
-                                        <ComboBox fx:id="langBox" prefWidth="60"/>
-                                        <Label text="Index:"/>
-                                        <Spinner fx:id="indexSpinner" prefWidth="80" editable="true"/>
-                                        <Button text="Show" onAction="#onShow"/>
-                                        <Separator orientation="VERTICAL"/>
-                                        <Button text="-" onAction="#onZoomOut" focusTraversable="false">
+                                        <ComboBox fx:id="langBox" prefHeight="25.0" prefWidth="0.0" />
+                                        <Spinner fx:id="indexSpinner" editable="true" prefHeight="25.0" prefWidth="55.0" />
+                                        <Button onAction="#onShow" prefHeight="25.0" prefWidth="45.0" text="Show" />
+                                        <Separator orientation="VERTICAL" />
+                                        <Button focusTraversable="false" onAction="#onZoomOut" text="-">
                                             <tooltip>
-                                                <Tooltip text="Zoom out"/>
+                                                <Tooltip text="Zoom out" />
                                             </tooltip>
                                         </Button>
-                                        <Button text="+" onAction="#onZoomIn" focusTraversable="false">
+                                        <Button focusTraversable="false" onAction="#onZoomIn" text="+">
                                             <tooltip>
-                                                <Tooltip text="Zoom in"/>
+                                                <Tooltip text="Zoom in" />
                                             </tooltip>
                                         </Button>
-                                        <Button text="Reset" onAction="#onZoomReset"
-                                                focusTraversable="false">
+                                        <Button focusTraversable="false" onAction="#onZoomReset" text="Reset">
                                             <tooltip>
-                                                <Tooltip text="Reset zoom"/>
+                                                <Tooltip text="Reset zoom" />
                                             </tooltip>
                                         </Button>
-                                        <ToggleButton fx:id="zoomFitToggle" text="Fit" onAction="#onZoomFit"
-                                                      focusTraversable="false">
+                                        <ToggleButton fx:id="zoomFitToggle" focusTraversable="false" onAction="#onZoomFit" text="Fit">
                                             <tooltip>
-                                                <Tooltip text="Fit to size"/>
+                                                <Tooltip text="Fit to size" />
                                             </tooltip>
                                         </ToggleButton>
                                     </ToolBar>
@@ -91,19 +84,17 @@
                 </center>
                 <right>
                     <ToolBar orientation="VERTICAL" prefWidth="30">
-                        <ToggleButton fx:id="previewToggle" text="👁" selected="true"
-                                      onAction="#onTogglePreview" prefWidth="30">
+                        <ToggleButton fx:id="previewToggle" onAction="#onTogglePreview" prefHeight="25.0" prefWidth="30.0" selected="true" text="👁">
                             <tooltip>
-                                <Tooltip text="Toggle preview"/>
+                                <Tooltip text="Toggle preview" />
                             </tooltip>
                         </ToggleButton>
                     </ToolBar>
                 </right>
             </BorderPane>
             <!-- Bottom area: console log, now resizable via the SplitPane divider -->
-            <TitledPane fx:id="consolePane" text="Console Log" expanded="false" animated="false" maxHeight="Infinity">
-                <TextArea fx:id="consoleTextArea" editable="false" wrapText="true" prefRowCount="5"
-                          style="-fx-font-family: 'Consolas', 'Courier New', monospace;"/>
+            <TitledPane fx:id="consolePane" animated="false" expanded="false" maxHeight="Infinity" text="Console Log">
+                <TextArea fx:id="consoleTextArea" editable="false" prefRowCount="5" style="-fx-font-family: 'Consolas', 'Courier New', monospace;" wrapText="true" />
             </TitledPane>
         </SplitPane>
     </center>

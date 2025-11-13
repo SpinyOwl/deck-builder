@@ -1,6 +1,7 @@
 package com.spinyowl.cards.service;
 
 import com.spinyowl.cards.model.Card;
+import com.spinyowl.cards.util.FileUtils;
 import com.spinyowl.cards.util.PebbleCardTranslationFunction;
 import com.spinyowl.cards.util.PebbleTranslationFunction;
 import io.pebbletemplates.pebble.PebbleEngine;
@@ -15,11 +16,13 @@ import java.util.*;
 
 @Slf4j
 public class CardRenderer implements ProjectManager.ReloadListener {
+
     private final ProjectManager projectManager;
     private PebbleEngine engine;
     private List<Card> cards = List.of();
     private PebbleTranslationFunction translationFunction;
     private PebbleCardTranslationFunction cardTranslationFunction;
+    private String htmlWrapperTemplate = ProjectManager.DEFAULT_HTML_WRAPPER_TEMPLATE;
 
     public CardRenderer(ProjectManager pm) {
         this.projectManager = pm;
@@ -60,11 +63,14 @@ public class CardRenderer implements ProjectManager.ReloadListener {
                     })
                     .build();
 
+            htmlWrapperTemplate = resolveHtmlWrapperTemplate();
+
             log.info("Renderer initialized with {} cards", cards.size());
         } catch (Exception e) {
             log.error("Failed to rebuild card renderer", e);
             cards = List.of();
             engine = null;
+            htmlWrapperTemplate = ProjectManager.DEFAULT_HTML_WRAPPER_TEMPLATE;
         }
     }
 
@@ -100,21 +106,21 @@ public class CardRenderer implements ProjectManager.ReloadListener {
             cardTranslationFunction.setCardContext(card.getId(), ctx);
             try {
                 template.evaluate(sw, ctx);
+                String wrapped = wrapWithHtml(sw.toString(), projectManager.getProjectProperties(), card, lang);
+                log.debug("Rendered card {} with template {}", index, tpl);
+                return wrapped;
             } finally {
                 translationFunction.clearLanguage();
                 cardTranslationFunction.clearLanguage();
                 cardTranslationFunction.clearCardContext();
             }
-
-            log.debug("Rendered card {} with template {}", index, tpl);
-            return wrapWithHtml(sw.toString(), projectManager.getProjectProperties(), card);
         } catch (Exception e) {
             log.error("Error rendering card {}", index, e);
             return "<p>Error rendering card.</p>";
         }
     }
 
-    private String wrapWithHtml(String content, Map<String, Object> projectProps, Card card) {
+    private String wrapWithHtml(String content, Map<String, Object> projectProps, Card card, String lang) {
         Objects.requireNonNull(projectProps, "projectProps");
 
         String width = extractCardDimension(card, "width");
@@ -134,24 +140,23 @@ public class CardRenderer implements ProjectManager.ReloadListener {
             }
         }
 
-        List<String> styles = new ArrayList<>();
-        styles.add("margin:0");
-        addStyleIfNotNull("width", width, styles);
-        addStyleIfNotNull("height", height, styles);
+        Map<String, Object> wrapperContext = new HashMap<>();
+        wrapperContext.put("content", content);
+        wrapperContext.put("lang", lang);
+        wrapperContext.put("project", projectProps);
+        wrapperContext.put("card", card != null ? card.asMap() : Map.of());
+        wrapperContext.put("card_width", width);
+        wrapperContext.put("card_height", height);
 
-        String bodyStyle = String.join(";", styles);
-
-        return "<html><body style=\"%s\">%s</body></html>".formatted(escapeHtmlAttribute(bodyStyle), content);
-    }
-
-    private static void addStyleIfNotNull(String styleName, String styleValue, List<String> styles) {
-        if (styleValue != null && !styleValue.isBlank()) {
-            styles.add("%s:%s".formatted(styleName, styleValue.trim()));
+        try {
+            PebbleTemplate wrapperTemplate = engine.getTemplate(htmlWrapperTemplate);
+            StringWriter writer = new StringWriter();
+            wrapperTemplate.evaluate(writer, wrapperContext);
+            return writer.toString();
+        } catch (Exception wrapperError) {
+            log.error("Failed to render HTML wrapper template '{}'", htmlWrapperTemplate, wrapperError);
+            throw new IllegalStateException("Failed to render HTML wrapper template '%s'".formatted(htmlWrapperTemplate), wrapperError);
         }
-    }
-
-    private String escapeHtmlAttribute(String value) {
-        return value.replace("\"", "&quot;");
     }
 
     private String extractCardDimension(Card card, String key) {
@@ -164,4 +169,19 @@ public class CardRenderer implements ProjectManager.ReloadListener {
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
     }
+
+    private String resolveHtmlWrapperTemplate() {
+        String configured = projectManager.getHtmlWrapperTemplate();
+        if (configured == null || configured.isBlank()) {
+            return ProjectManager.DEFAULT_HTML_WRAPPER_TEMPLATE;
+        }
+
+        if (!FileUtils.isReadableFile(projectManager.getTemplatesDirectory().resolve(configured))) {
+            log.warn("HTML wrapper template {} not found in project; falling back to {}", configured, ProjectManager.DEFAULT_HTML_WRAPPER_TEMPLATE);
+            return ProjectManager.DEFAULT_HTML_WRAPPER_TEMPLATE;
+        }
+
+        return configured;
+    }
+
 }
