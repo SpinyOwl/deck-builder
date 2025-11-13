@@ -1,9 +1,10 @@
 package com.spinyowl.cards.model;
 
+import lombok.NonNull;
+
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * Represents a single card record loaded from the project CSV file. A card may have an
@@ -13,23 +14,17 @@ import java.util.Objects;
  */
 public class Card {
 
-    private final Map<String, Object> properties;
+    private final Map<String, String> properties;
 
-    public Card(Map<String, ?> properties) {
-        Objects.requireNonNull(properties, "properties");
+    private Card(Map<String, String> properties) {
+        this.properties = properties;
+    }
 
-        Map<String, Object> copy = new LinkedHashMap<>();
-        properties.forEach((key, value) -> {
-            if (key == null) {
-                return;
-            }
-            String strKey = key.toString();
-            Object normalizedValue = value;
-            if (value instanceof String str) {
-                normalizedValue = str;
-            }
-            copy.put(strKey, normalizedValue);
-        });
+    public static Card of(@NonNull Map<String, String> properties) {
+        Map<String, String> copy = new LinkedHashMap<>();
+        properties.entrySet().stream()
+                .filter(e -> e.getKey() != null && e.getValue() != null)
+                .forEach(e -> copy.put(e.getKey(), e.getValue()));
 
         String id = normalizeId(copy.get("id"));
         if (id == null) {
@@ -37,39 +32,35 @@ public class Card {
         }
         copy.put("id", id);
 
-        this.properties = Collections.unmodifiableMap(copy);
+        return new Card(Collections.unmodifiableMap(copy));
     }
 
-    private String normalizeId(Object rawId) {
+    private static String normalizeId(String rawId) {
         if (rawId == null) {
             return null;
         }
-        String trimmed = rawId.toString().trim();
+        String trimmed = rawId.trim();
         return trimmed.isEmpty() ? null : trimmed;
     }
 
     public String getId() {
-        return (String) properties.get("id");
+        return properties.get("id");
     }
 
     public String getTemplate() {
-        return asString("template");
+        return properties.get("template");
     }
 
-    public Map<String, Object> asMap() {
+    public Map<String, String> asMap() {
         return properties;
     }
 
-    public Object getProperty(String key) {
+    public String getProperty(String key) {
         return properties.get(key);
     }
 
-    public String getPropertyAsString(String key) {
-        return asString(key);
+    public String getProperty(String key, String defaultValue) {
+        return properties.getOrDefault(key, defaultValue);
     }
 
-    private String asString(String key) {
-        Object value = properties.get(key);
-        return value != null ? value.toString() : null;
-    }
 }

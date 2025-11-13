@@ -4,11 +4,12 @@ import com.spinyowl.cards.config.AppConfig;
 import com.spinyowl.cards.config.ConfigService;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
+import javafx.collections.ObservableList;
+import javafx.scene.Node;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Pane;
-import javafx.scene.layout.StackPane;
 import javafx.scene.web.WebView;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -162,33 +163,9 @@ public class PreviewController {
         boolean currentlyVisible = items.contains(previewPane);
 
         if (show) {
-            if (!currentlyVisible) {
-                items.add(previewPane);
-            }
-            appConfig.setPreviewVisible(true);
-            Platform.runLater(() -> {
-                if (projectViewController != null) {
-                    projectViewController.applyStoredDividerPositions();
-                    projectViewController.ensureHorizontalDividerListener();
-                }
-                ensurePreviewDividerListener();
-            });
+            showPreview(currentlyVisible, items);
         } else if (currentlyVisible) {
-            var dividers = mainHorizontalSplit.getDividers();
-            if (!dividers.isEmpty()) {
-                SplitPane.Divider divider = dividers.get(dividers.size() - 1);
-                double position = clamp(divider.getPosition());
-                appConfig.setPreviewDividerPosition(position);
-            }
-            items.remove(previewPane);
-            removePreviewDividerListener();
-            appConfig.setPreviewVisible(false);
-            Platform.runLater(() -> {
-                if (projectViewController != null) {
-                    projectViewController.applyStoredDividerPositions();
-                    projectViewController.ensureHorizontalDividerListener();
-                }
-            });
+            hidePreview(items);
         } else {
             appConfig.setPreviewVisible(false);
         }
@@ -196,6 +173,38 @@ public class PreviewController {
         if (persist) {
             configService.save();
         }
+    }
+
+    private void hidePreview(ObservableList<Node> items) {
+        var dividers = mainHorizontalSplit.getDividers();
+        if (!dividers.isEmpty()) {
+            SplitPane.Divider divider = dividers.getLast();
+            double position = clamp(divider.getPosition());
+            appConfig.setPreviewDividerPosition(position);
+        }
+        items.remove(previewPane);
+        removePreviewDividerListener();
+        appConfig.setPreviewVisible(false);
+        Platform.runLater(() -> {
+            if (projectViewController != null) {
+                projectViewController.applyStoredDividerPositions();
+                projectViewController.ensureHorizontalDividerListener();
+            }
+        });
+    }
+
+    private void showPreview(boolean currentlyVisible, ObservableList<Node> items) {
+        if (!currentlyVisible) {
+            items.add(previewPane);
+        }
+        appConfig.setPreviewVisible(true);
+        Platform.runLater(() -> {
+            if (projectViewController != null) {
+                projectViewController.applyStoredDividerPositions();
+                projectViewController.ensureHorizontalDividerListener();
+            }
+            ensurePreviewDividerListener();
+        });
     }
 
     private void adjustZoom(double delta) {
@@ -244,7 +253,7 @@ public class PreviewController {
 
                 double targetZoom = Math.min(containerWidth / contentWidth, containerHeight / contentHeight);
 
-                log.info("Zooming on autofit: {},{},{},{},{}", containerWidth, containerHeight, contentWidth, contentHeight, targetZoom);
+                log.info("Zooming on autofit: {}, {}, {}, {}, {}", containerWidth, containerHeight, contentWidth, contentHeight, targetZoom);
                 if (Double.isFinite(targetZoom) && targetZoom > 0) {
                     applyZoom(targetZoom);
                 }

@@ -50,7 +50,8 @@
                                     <WebView fx:id="webView"/>
                                 </center>
                                 <bottom>
-                                    <ToolBar StackPane.alignment="BOTTOM_CENTER" styleClass="preview-toolbar"
+                                    <ToolBar StackPane.alignment="BOTTOM_CENTER"
+                                             styleClass="preview-toolbar"
                                              focusTraversable="false">
                                         <StackPane.margin>
                                             <Insets top="10" right="10"/>
