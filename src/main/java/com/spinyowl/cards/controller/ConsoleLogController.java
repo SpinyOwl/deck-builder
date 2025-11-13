@@ -7,6 +7,8 @@ import com.spinyowl.cards.util.FileUtils;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.scene.Node;
+import javafx.scene.control.IndexRange;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TitledPane;
@@ -24,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 public class ConsoleLogController {
 
     private static final int MAX_LOG_CHARACTERS = 20_000;
+    private static final double AUTO_SCROLL_THRESHOLD = 0.98;
 
     private final ConfigService configService;
     private final AppConfig appConfig;
@@ -33,6 +36,7 @@ public class ConsoleLogController {
 
     private ChangeListener<Number> verticalDividerListener;
     private SplitPane.Divider verticalDivider;
+    private ScrollPane consoleScrollPane;
 
     private ScheduledExecutorService logUpdateExecutor;
     private Path latestLogFile;
@@ -217,12 +221,84 @@ public class ConsoleLogController {
             lastDisplayedLog = content;
             String finalContent = content;
             Platform.runLater(() -> {
+                ScrollPane scrollPane = getConsoleScrollPane();
+                boolean shouldAutoScroll = isScrolledToBottom(scrollPane);
+                double previousVvalue = scrollPane != null ? scrollPane.getVvalue() : 1.0;
+                int previousCaret = consoleTextArea.getCaretPosition();
+                IndexRange previousSelection = consoleTextArea.getSelection();
+
                 consoleTextArea.setText(finalContent);
-                consoleTextArea.positionCaret(finalContent.length());
+
+                if (shouldAutoScroll) {
+                    consoleTextArea.positionCaret(finalContent.length());
+                } else {
+                    restoreCaretPosition(finalContent, previousCaret, previousSelection);
+                }
+
+                double targetVvalue = shouldAutoScroll
+                    ? (scrollPane != null ? scrollPane.getVmax() : 1.0)
+                    : previousVvalue;
+                scheduleScrollAdjustment(targetVvalue);
             });
         } catch (Exception e) {
             log.warn("Failed to read log file {}", logFile, e);
         }
+    }
+
+    private void restoreCaretPosition(String content, int caret, IndexRange selection) {
+        int boundedCaret = Math.min(Math.max(caret, 0), content.length());
+        if (selection != null && selection.getLength() > 0) {
+            int start = Math.min(Math.max(selection.getStart(), 0), content.length());
+            int end = Math.min(Math.max(selection.getEnd(), 0), content.length());
+            consoleTextArea.selectRange(start, end);
+        } else {
+            consoleTextArea.positionCaret(boundedCaret);
+        }
+    }
+
+    private void scheduleScrollAdjustment(double targetVvalue) {
+        if (consoleTextArea == null) {
+            return;
+        }
+        Platform.runLater(() -> {
+            ScrollPane scrollPane = getConsoleScrollPane();
+            if (scrollPane != null) {
+                double clampedValue = clamp(targetVvalue, scrollPane.getVmin(), scrollPane.getVmax());
+                scrollPane.setVvalue(clampedValue);
+            }
+        });
+    }
+
+    private boolean isScrolledToBottom(ScrollPane scrollPane) {
+        if (scrollPane == null) {
+            return true;
+        }
+        double vMin = scrollPane.getVmin();
+        double vMax = scrollPane.getVmax();
+        double range = vMax - vMin;
+        if (range <= 0.0) {
+            return true;
+        }
+        double normalized = (scrollPane.getVvalue() - vMin) / range;
+        return normalized >= AUTO_SCROLL_THRESHOLD;
+    }
+
+    private ScrollPane getConsoleScrollPane() {
+        if (consoleScrollPane == null && consoleTextArea != null) {
+            consoleTextArea.applyCss();
+            consoleTextArea.layout();
+            Node node = consoleTextArea.lookup(".scroll-pane");
+            if (node instanceof ScrollPane sp) {
+                consoleScrollPane = sp;
+            }
+        }
+        return consoleScrollPane;
+    }
+
+    private double clamp(double value, double min, double max) {
+        if (value < min) return min;
+        if (value > max) return max;
+        return value;
     }
 
     private static class LogWatcherThreadFactory implements ThreadFactory {
