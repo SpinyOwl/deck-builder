@@ -1,3 +1,4 @@
 ui:
   name: Name
   description: Description
+  no_image: No image available
