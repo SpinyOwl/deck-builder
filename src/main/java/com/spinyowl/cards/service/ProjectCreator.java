@@ -31,6 +31,7 @@ public class ProjectCreator {
 
         // default.html
         copyResource("default_project/templates/default.html", projectDir.resolve("templates/default.html"));
+        copyResource("default_project/templates/vibrant.html", projectDir.resolve("templates/vibrant.html"));
 
         // i18n/en.yml
         copyResource("default_project/i18n/en.yml", projectDir.resolve("i18n/en.yml"));

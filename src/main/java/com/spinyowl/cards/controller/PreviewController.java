@@ -237,16 +237,37 @@ public class PreviewController {
 
             try {
                 Object widthObj = webView.getEngine().executeScript(
-                        "Math.max(document.body ? document.body.scrollWidth : 0, document.documentElement ? document.documentElement.scrollWidth : 0)"
+                        "(function() {\n" +
+                                "  const body = document.body;\n" +
+                                "  if (!body) {\n" +
+                                "    return null;\n" +
+                                "  }\n" +
+                                "  const rect = body.getBoundingClientRect();\n" +
+                                "  if (!rect) {\n" +
+                                "    return null;\n" +
+                                "  }\n" +
+                                "  return rect.width;\n" +
+                                "})()"
                 );
                 Object heightObj = webView.getEngine().executeScript(
-                        "Math.max(document.body ? document.body.scrollHeight : 0, document.documentElement ? document.documentElement.scrollHeight : 0)"
+                        "(function() {\n" +
+                                "  const body = document.body;\n" +
+                                "  if (!body) {\n" +
+                                "    return null;\n" +
+                                "  }\n" +
+                                "  const rect = body.getBoundingClientRect();\n" +
+                                "  if (!rect) {\n" +
+                                "    return null;\n" +
+                                "  }\n" +
+                                "  return rect.height;\n" +
+                                "})()"
                 );
 
                 double contentWidth = toDouble(widthObj);
                 double contentHeight = toDouble(heightObj);
 
-                if (contentWidth <= 0 || contentHeight <= 0) {
+                if (!Double.isFinite(contentWidth) || !Double.isFinite(contentHeight)
+                        || contentWidth <= 0 || contentHeight <= 0) {
                     applyZoom(DEFAULT_ZOOM);
                     return;
                 }
