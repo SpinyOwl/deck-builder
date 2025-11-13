@@ -55,8 +55,7 @@
                                         <StackPane.margin>
                                             <Insets top="10" right="10"/>
                                         </StackPane.margin>
-                                        <Label text="Language:"/>
-                                        <ComboBox fx:id="langBox" prefWidth="100"/>
+                                        <ComboBox fx:id="langBox" prefWidth="60"/>
                                         <Label text="Index:"/>
                                         <Spinner fx:id="indexSpinner" prefWidth="80" editable="true"/>
                                         <Button text="Show" onAction="#onShow"/>
